@@ -50,7 +50,7 @@ schedule.every().day.at("09:00").do(run_scraper)
 schedule.every().day.at("12:00").do(run_scraper)
 schedule.every().day.at("15:00").do(run_scraper)
 schedule.every().day.at("16:04").do(run_scraper)
-schedule.every().day.at("16:30").do(run_scraper)
+schedule.every().day.at("16:52").do(run_scraper)
 schedule.every().day.at("17:00").do(run_scraper)
 schedule.every().day.at("18:00").do(run_scraper)
 
