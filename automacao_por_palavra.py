@@ -181,8 +181,36 @@ def main():
 
     # --- INÍCIO DA AUTOMAÇÃO COM SELENIUM (VERSÃO CORRIGIDA) ---
     print("Iniciando navegador com Selenium...")
-    # O Selenium 4.6+ usa o Selenium Manager automaticamente para gerenciar drivers
-    driver = webdriver.Edge()
+
+    # Detectar se está rodando em ambiente Docker/Linux (VPS) ou Windows (local)
+    import platform
+    sistema = platform.system()
+
+    if sistema == "Linux":
+        # Configuração para ambiente headless (VPS/Docker)
+        print("Ambiente Linux detectado. Usando Chromium headless...")
+        from selenium.webdriver.chrome.options import Options
+        from selenium.webdriver.chrome.service import Service
+
+        chrome_options = Options()
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument('--window-size=1920,1080')
+        chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+        chrome_options.add_argument('--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+
+        # Usar chromium instalado no sistema
+        chrome_options.binary_location = '/usr/bin/chromium'
+        service = Service('/usr/bin/chromedriver')
+
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+    else:
+        # Configuração para ambiente Windows (local)
+        print("Ambiente Windows detectado. Usando Edge...")
+        driver = webdriver.Edge()
+
     driver.get(url_do_siafe)
     print("Página de login aberta")
 

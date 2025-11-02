@@ -1,0 +1,139 @@
+# Guia de Debug para Automação na VPS
+
+## Problemas Identificados e Soluções
+
+### 1. Erro: "Chrome instance exited"
+**Causa**: O código estava configurado para usar Microsoft Edge (Windows), mas a VPS usa Linux com Chromium.
+
+**Solução Aplicada**:
+- Modificado o código em `automacao_por_palavra.py` para detectar automaticamente o sistema operacional
+- Adicionadas configurações headless necessárias para o Chromium
+- Instaladas bibliotecas necessárias no Dockerfile
+
+### 2. Configurações Headless Aplicadas
+
+As seguintes opções foram adicionadas para garantir que o Chrome funcione sem interface gráfica:
+
+```python
+chrome_options.add_argument('--headless')              # Modo sem interface gráfica
+chrome_options.add_argument('--no-sandbox')            # Necessário em ambientes Docker
+chrome_options.add_argument('--disable-dev-shm-usage') # Evita problemas de memória compartilhada
+chrome_options.add_argument('--disable-gpu')           # Desabilita GPU
+chrome_options.add_argument('--window-size=1920,1080') # Define tamanho da janela virtual
+```
+
+## Como Testar Localmente
+
+Para testar o código modificado no Windows (local):
+```bash
+python automacao_por_palavra.py
+```
+
+O código detectará automaticamente que está no Windows e usará Edge normalmente.
+
+## Como Fazer Deploy na VPS
+
+1. **Reconstruir a imagem Docker**:
+```bash
+docker-compose build
+```
+
+2. **Reiniciar o container**:
+```bash
+docker-compose down
+docker-compose up -d
+```
+
+3. **Verificar os logs em tempo real**:
+```bash
+docker-compose logs -f scraper-comunica-email
+```
+
+## Como Depurar Erros na VPS
+
+### Ver logs do container:
+```bash
+docker-compose logs scraper-comunica-email
+```
+
+### Ver logs detalhados do scheduler:
+```bash
+docker exec -it scraper-comunica-email cat /app/scheduler.log
+```
+
+### Entrar no container para debug:
+```bash
+docker exec -it scraper-comunica-email /bin/bash
+```
+
+### Dentro do container, testar o Chromium:
+```bash
+chromium --version
+chromedriver --version
+python -c "from selenium import webdriver; print('Selenium OK')"
+```
+
+### Testar manualmente o script dentro do container:
+```bash
+docker exec -it scraper-comunica-email python automacao_por_palavra.py
+```
+
+## Capturando Screenshots para Debug
+
+Para ajudar a depurar problemas visuais, você pode salvar screenshots durante a execução.
+
+Adicione esta linha após o `driver.get()` ou em pontos críticos:
+
+```python
+driver.save_screenshot('/app/debug_screenshot.png')
+```
+
+Depois copie a imagem para sua máquina:
+```bash
+docker cp scraper-comunica-email:/app/debug_screenshot.png ./
+```
+
+## Variáveis de Ambiente
+
+Certifique-se de que o arquivo `.env` está presente na VPS com:
+- USUARIO
+- SENHA
+- DESTINATARIOS
+- EMAIL_REMETENTE
+- SENHA_REMETENTE
+
+## Ajustes de Timeouts
+
+Se o site estiver lento na VPS, pode ser necessário aumentar os timeouts:
+
+Em `automacao_por_palavra.py`:
+- Linha 191: `wait = WebDriverWait(driver, 15)` - Aumentar para 30 se necessário
+- Ajustar os `time.sleep()` conforme necessário
+
+## Monitoramento de Recursos
+
+Para verificar uso de CPU e memória do container:
+```bash
+docker stats scraper-comunica-email
+```
+
+## Logs de Erro Comuns
+
+### "Message: session not created"
+- Verifique se o chromium e chromedriver estão instalados
+- Confirme que as opções headless estão sendo aplicadas
+
+### "TimeoutException"
+- Aumente os tempos de espera
+- Verifique a conexão de rede da VPS
+
+### "ElementNotInteractableException"
+- O elemento pode não estar visível em modo headless
+- Adicione `driver.save_screenshot()` para verificar
+
+## Próximos Passos (Melhorias Futuras)
+
+1. **Adicionar retry logic**: Se a automação falhar, tentar novamente automaticamente
+2. **Logging melhorado**: Adicionar mais detalhes nos logs para facilitar debug
+3. **Health checks**: Adicionar endpoint para verificar se o serviço está funcionando
+4. **Alertas**: Notificar por email quando houver erros críticos
