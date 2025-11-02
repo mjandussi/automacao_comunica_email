@@ -48,7 +48,7 @@ def run_scraper():
 #### Agendando a função para os horários desejados
 schedule.every().day.at("09:00").do(run_scraper)
 schedule.every().day.at("12:00").do(run_scraper)
-schedule.every().day.at("15:16").do(run_scraper)
+schedule.every().day.at("15:30").do(run_scraper)
 schedule.every().day.at("18:00").do(run_scraper)
 
 # Mensagem de inicialização
