@@ -22,9 +22,9 @@ load_dotenv()
 # --- Configurações pro Selenium e SIAFERIO ---
 PATH_DO_DRIVER = "msedgedriver.exe"
 url_do_siafe = "https://siafe2.fazenda.rj.gov.br/Siafe/faces/login.jsp"
-USUARIO = os.getenv("USUARIO")
-SENHA = os.getenv("SENHA")
-DESTINATARIOS = os.getenv("DESTINATARIOS")
+USUARIO = os.getenv("USUARIO", "").strip()  # Remove espaços no início/fim
+SENHA = os.getenv("SENHA", "").strip()  # Remove espaços no início/fim
+DESTINATARIOS = os.getenv("DESTINATARIOS", "").strip()  # Remove espaços no início/fim
 
 
 # ==============================================================================
@@ -75,8 +75,8 @@ DICIONARIO_DE_BLOQUEIO_REGEX = {
 
 
 # Configurações de e-mail
-EMAIL_REMETENTE = os.getenv("EMAIL_REMETENTE")
-SENHA_REMETENTE = os.getenv("SENHA_REMETENTE")
+EMAIL_REMETENTE = os.getenv("EMAIL_REMETENTE", "").strip()
+SENHA_REMETENTE = os.getenv("SENHA_REMETENTE", "").strip()
 
 def enviar_email(destinatarios, assunto, corpo_html):
     try:
@@ -287,7 +287,9 @@ def main():
                 pass
             raise
 
-        time.sleep(10)
+        # Aguardar o redirecionamento após o login (espera a URL mudar)
+        print("Aguardando redirecionamento pós-login...")
+        time.sleep(5)
 
         # Screenshot após login
         try:
@@ -295,15 +297,20 @@ def main():
             print("Screenshot 4 salvo: após login")
             print(f"URL atual: {driver.current_url}")
         except:
-            pass 
+            pass
 
         # AÇÕES NA TELA DE MENSAGEM PÓS-LOGIN
 
-        print("Aguardando botão OK da mensagem pós-login...")
+        print("Procurando botão OK da mensagem pós-login...")
+
+        # Estratégia 1: Tentar pelo ID original
+        botao_ok_encontrado = False
         try:
+            print("Tentativa 1: Procurando por ID completo...")
             botao_ok_mensagem_tela = wait.until(EC.element_to_be_clickable((By.ID, "pt1:warnMessageDec:frmExec:btnNewWarnMessageOK")))
-            print("Botão OK mensagem encontrado. Clicando...")
+            print("✓ Botão OK mensagem encontrado pelo ID. Clicando...")
             botao_ok_mensagem_tela.click()
+            botao_ok_encontrado = True
             time.sleep(4)
 
             try:
@@ -312,13 +319,52 @@ def main():
             except:
                 pass
 
-        except Exception as e:
-            print(f"AVISO: Botão OK mensagem não encontrado (pode não existir): {e}")
-            # Tenta continuar mesmo sem este botão
+        except Exception as e1:
+            print(f"Tentativa 1 falhou: {e1}")
+
+            # Estratégia 2: Tentar por CSS Selector parcial
             try:
-                driver.save_screenshot('/app/debug_aviso_sem_ok_mensagem.png')
-            except:
-                pass
+                print("Tentativa 2: Procurando por CSS Selector parcial...")
+                botao_ok_mensagem_tela = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "[id*='btnNewWarnMessageOK']")))
+                print("✓ Botão OK mensagem encontrado por CSS. Clicando...")
+                botao_ok_mensagem_tela.click()
+                botao_ok_encontrado = True
+                time.sleep(4)
+
+                try:
+                    driver.save_screenshot('/app/debug_05_apos_ok_mensagem.png')
+                    print("Screenshot 5 salvo: após OK mensagem")
+                except:
+                    pass
+
+            except Exception as e2:
+                print(f"Tentativa 2 falhou: {e2}")
+
+                # Estratégia 3: Tentar por texto do botão (se for OK)
+                try:
+                    print("Tentativa 3: Procurando botão com texto 'OK'...")
+                    botao_ok_mensagem_tela = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'OK') or @value='OK']")))
+                    print("✓ Botão OK mensagem encontrado por texto. Clicando...")
+                    botao_ok_mensagem_tela.click()
+                    botao_ok_encontrado = True
+                    time.sleep(4)
+
+                    try:
+                        driver.save_screenshot('/app/debug_05_apos_ok_mensagem.png')
+                        print("Screenshot 5 salvo: após OK mensagem")
+                    except:
+                        pass
+
+                except Exception as e3:
+                    print(f"Tentativa 3 falhou: {e3}")
+                    print("AVISO: Botão OK mensagem não encontrado por nenhuma estratégia (pode não existir)")
+                    # Salva screenshot para análise
+                    try:
+                        driver.save_screenshot('/app/debug_aviso_sem_ok_mensagem.png')
+                        print(f"URL atual: {driver.current_url}")
+                        print("Continuando sem clicar no botão OK...")
+                    except:
+                        pass
 
         print("Aguardando botão de entrar em comunica...")
         try:
