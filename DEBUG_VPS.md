@@ -10,7 +10,31 @@
 - Adicionadas configurações headless necessárias para o Chromium
 - Instaladas bibliotecas necessárias no Dockerfile
 
-### 2. Configurações Headless Aplicadas
+### 2. Erro: "Invalid requirement: 'a\x00t\x00t\x00r\x00s\x00=\x00=\x002\x005...'"
+**Causa**: O arquivo `requirements.txt` estava em encoding UTF-16 (com caracteres nulos entre cada letra).
+
+**Solução Aplicada**:
+- Arquivo `requirements.txt` convertido para UTF-8 puro
+- Criado script `validate_requirements.py` para validar o encoding
+- Git configurado com `.gitattributes` para normalização automática
+
+**Como Validar**:
+```bash
+python validate_requirements.py
+```
+
+**Como Corrigir Manualmente** (se necessário):
+```bash
+# No Windows (PowerShell):
+Get-Content requirements.txt | Set-Content -Encoding utf8 requirements_new.txt
+Move-Item -Force requirements_new.txt requirements.txt
+
+# No Linux/Mac:
+iconv -f UTF-16 -t UTF-8 requirements.txt > requirements_utf8.txt
+mv requirements_utf8.txt requirements.txt
+```
+
+### 3. Configurações Headless Aplicadas
 
 As seguintes opções foram adicionadas para garantir que o Chrome funcione sem interface gráfica:
 
