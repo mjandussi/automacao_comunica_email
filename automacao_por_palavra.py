@@ -222,26 +222,26 @@ def main():
 
         campo_usuario = wait.until(EC.element_to_be_clickable((By.ID, "loginBox:itxUsuario::content")))
         campo_usuario.send_keys(USUARIO)
-        time.sleep(1) 
+        time.sleep(2) 
         campo_senha = wait.until(EC.element_to_be_clickable((By.ID, "loginBox:itxSenhaAtual::content")))
         campo_senha.send_keys(SENHA)
-        time.sleep(1)
+        time.sleep(2)
         botao_ok = wait.until(EC.element_to_be_clickable((By.ID, "loginBox:btnConfirmar")))
         botao_ok.click()
 
-        time.sleep(5) 
+        time.sleep(10) 
 
         # AÇÕES NA TELA DE MENSAGEM PÓS-LOGIN
         
         botao_ok_mensagem_tela = wait.until(EC.element_to_be_clickable((By.ID, "pt1:warnMessageDec:frmExec:btnNewWarnMessageOK")))
         botao_ok_mensagem_tela.click()
-        time.sleep(2)
+        time.sleep(4)
         botao_entrar_comunica = wait.until(EC.element_to_be_clickable((By.ID, "pt1:itLinks:1:j_id__ctru33")))
         botao_entrar_comunica.click()
         
         # Pausa final para garantir que a página principal carregou completamente
         # antes de o robô prosseguir para a próxima parte da automação (tela de comunicas).
-        time.sleep(5) 
+        time.sleep(10) 
 
         # AÇÕES NA TELA DE COMUNICAS (FILTRO)
         
@@ -250,24 +250,24 @@ def main():
         time.sleep(1)
         botao_de_propriedade = wait.until(EC.element_to_be_clickable((By.ID, "pt1:binbox:messagesTableViewer:table_rtfFilter:0:cbx_col_sel_rtfFilter::content")))
         botao_de_propriedade.click()
-        time.sleep(2) 
+        time.sleep(4) 
         # ESCOLHA DO ORIGEM REMETENTE >> Enviamos a letra "R" e a tecla "Enter" para o mesmo elemento que acabamos de clicar
         botao_de_propriedade.send_keys("O" + Keys.ENTER)
-        time.sleep(2) 
+        time.sleep(4) 
         botao_de_negar = wait.until(EC.element_to_be_clickable((By.ID, "pt1:binbox:messagesTableViewer:table_rtfFilter:0:chk_neg_rtfFilter::content")))
         botao_de_negar.click()
         time.sleep(2) 
         botao_de_operador = wait.until(EC.element_to_be_clickable((By.ID, "pt1:binbox:messagesTableViewer:table_rtfFilter:0:cbx_op_sel_rtfFilter::content")))
         botao_de_operador.click()
-        time.sleep(2) 
+        time.sleep(4) 
         # ESCOLHA DO TERMINA COM >> Enviamos a letra "T" e a tecla "Enter" para o mesmo elemento que acabamos de clicar
         botao_de_operador.send_keys("T" + Keys.ENTER)
-        time.sleep(2)
+        time.sleep(4)
         campo_valor_filtro = wait.until(EC.element_to_be_clickable((By.ID, "pt1:binbox:messagesTableViewer:table_rtfFilter:0:in_value_rtfFilter::content")))
         campo_valor_filtro.send_keys(setor_excluir_pesquisa)
-        time.sleep(2) 
+        time.sleep(4) 
         campo_valor_filtro.send_keys(Keys.TAB)
-        time.sleep(10) 
+        time.sleep(20) 
 
         # --- LOOP DINÂMICO PARA PROCESSAR TODOS OS ITENS ATÉ A LISTA FICAR VAZIA ---
 
@@ -299,12 +299,12 @@ def main():
             # Clicamos no primeiro elemento da lista que acabamos de encontrar
             primeiro_comunica_da_lista = lista_de_comunicas[0]
             primeiro_comunica_da_lista.click()
-            time.sleep(2)
+            time.sleep(4)
             
             # O botão de visualizar continua o mesmo
             botao_de_visualizar = wait.until(EC.element_to_be_clickable((By.ID, "pt1:binbox:messagesTableViewer:btnView")))
             botao_de_visualizar.click()
-            time.sleep(15)
+            time.sleep(30)
             
             # EXTRAÇÃO DE DADOS (Lógica permanece a mesma)
 
@@ -325,7 +325,7 @@ def main():
             # Botão de "Sair" da visualização do Comunica
             botao_de_sair_comunica = wait.until(EC.element_to_be_clickable((By.ID, "pt1:m1:btnVoltar")))
             botao_de_sair_comunica.click()
-            time.sleep(10) # Tempo para a lista principal recarregar
+            time.sleep(20) # Tempo para a lista principal recarregar
             
             registrar_log(f"--- Análise do Comunica ID '{numero_comunica_copiado} - {assunto_comunica_copiado}' ---")
 
