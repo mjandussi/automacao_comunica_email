@@ -102,19 +102,44 @@ python -c "from selenium import webdriver; print('Selenium OK')"
 docker exec -it scraper-comunica-email python automacao_por_palavra.py
 ```
 
-## Capturando Screenshots para Debug
+## Capturando Screenshots para Debug (NOVO - AUTOMÁTICO)
 
-Para ajudar a depurar problemas visuais, você pode salvar screenshots durante a execução.
+O código agora salva automaticamente screenshots em pontos críticos:
 
-Adicione esta linha após o `driver.get()` ou em pontos críticos:
+- `debug_01_pagina_inicial.png` - Página inicial do SIAFERIO
+- `debug_02_usuario_preenchido.png` - Após preencher usuário
+- `debug_03_antes_login.png` - Antes de clicar em login
+- `debug_04_apos_login.png` - Após fazer login
+- `debug_05_apos_ok_mensagem.png` - Após clicar OK na mensagem
+- `debug_06_tela_comunicas.png` - Tela de comunicas
+- `debug_erro_*.png` - Screenshots de erros (se houver)
 
-```python
-driver.save_screenshot('/app/debug_screenshot.png')
+### Baixar Screenshots Automaticamente
+
+Use o script auxiliar (em ambiente com Docker CLI):
+
+```bash
+bash download_debug_screenshots.sh
 ```
 
-Depois copie a imagem para sua máquina:
+Ou manualmente, um por um:
+
 ```bash
-docker cp scraper-comunica-email:/app/debug_screenshot.png ./
+docker cp scraper-comunica-email:/app/debug_01_pagina_inicial.png ./
+docker cp scraper-comunica-email:/app/debug_erro_usuario.png ./
+# etc...
+```
+
+### Via EasyPanel
+
+Se estiver usando EasyPanel, você pode acessar o terminal do container e usar:
+
+```bash
+# Listar screenshots disponíveis
+ls -lh /app/debug_*.png
+
+# Ver conteúdo base64 de um screenshot (para copiar)
+base64 /app/debug_01_pagina_inicial.png
 ```
 
 ## Variáveis de Ambiente

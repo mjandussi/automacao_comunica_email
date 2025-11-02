@@ -214,34 +214,137 @@ def main():
     driver.get(url_do_siafe)
     print("Página de login aberta")
 
+    # Salvar screenshot inicial para debug
     try:
-        # Cria um objeto de espera. Aumentei para 15s para dar mais margem.
-        wait = WebDriverWait(driver, 15)
+        driver.save_screenshot('/app/debug_01_pagina_inicial.png')
+        print("Screenshot 1 salvo: página inicial")
+    except:
+        pass  # Ignora erro de screenshot em ambiente Windows
 
+    try:
+        # Cria um objeto de espera. Aumentei para 30s para dar mais margem em ambientes lentos.
+        wait = WebDriverWait(driver, 30)
+
+        print("Aguardando campo de usuário...")
         # AÇÕES NA TELA DE LOGIN
+        try:
+            campo_usuario = wait.until(EC.element_to_be_clickable((By.ID, "loginBox:itxUsuario::content")))
+            print(f"Campo de usuário encontrado. Preenchendo com usuário...")
+            campo_usuario.clear()
+            campo_usuario.send_keys(USUARIO)
+            time.sleep(2)
 
-        campo_usuario = wait.until(EC.element_to_be_clickable((By.ID, "loginBox:itxUsuario::content")))
-        campo_usuario.send_keys(USUARIO)
-        time.sleep(2) 
-        campo_senha = wait.until(EC.element_to_be_clickable((By.ID, "loginBox:itxSenhaAtual::content")))
-        campo_senha.send_keys(SENHA)
-        time.sleep(2)
-        botao_ok = wait.until(EC.element_to_be_clickable((By.ID, "loginBox:btnConfirmar")))
-        botao_ok.click()
+            # Screenshot após preencher usuário
+            try:
+                driver.save_screenshot('/app/debug_02_usuario_preenchido.png')
+                print("Screenshot 2 salvo: usuário preenchido")
+            except:
+                pass
 
-        time.sleep(10) 
+        except Exception as e:
+            print(f"ERRO ao localizar/preencher campo de usuário: {e}")
+            try:
+                driver.save_screenshot('/app/debug_erro_usuario.png')
+                print(f"HTML da página: {driver.page_source[:500]}")  # Primeiros 500 caracteres
+            except:
+                pass
+            raise
+
+        print("Aguardando campo de senha...")
+        try:
+            campo_senha = wait.until(EC.element_to_be_clickable((By.ID, "loginBox:itxSenhaAtual::content")))
+            print(f"Campo de senha encontrado. Preenchendo...")
+            campo_senha.clear()
+            campo_senha.send_keys(SENHA)
+            time.sleep(2)
+        except Exception as e:
+            print(f"ERRO ao localizar/preencher campo de senha: {e}")
+            try:
+                driver.save_screenshot('/app/debug_erro_senha.png')
+            except:
+                pass
+            raise
+
+        print("Aguardando botão OK...")
+        try:
+            botao_ok = wait.until(EC.element_to_be_clickable((By.ID, "loginBox:btnConfirmar")))
+            print("Botão OK encontrado. Clicando...")
+
+            # Screenshot antes de clicar
+            try:
+                driver.save_screenshot('/app/debug_03_antes_login.png')
+                print("Screenshot 3 salvo: antes de clicar em login")
+            except:
+                pass
+
+            botao_ok.click()
+            print("Botão OK clicado. Aguardando resposta...")
+        except Exception as e:
+            print(f"ERRO ao localizar/clicar botão OK: {e}")
+            try:
+                driver.save_screenshot('/app/debug_erro_botao_ok.png')
+            except:
+                pass
+            raise
+
+        time.sleep(10)
+
+        # Screenshot após login
+        try:
+            driver.save_screenshot('/app/debug_04_apos_login.png')
+            print("Screenshot 4 salvo: após login")
+            print(f"URL atual: {driver.current_url}")
+        except:
+            pass 
 
         # AÇÕES NA TELA DE MENSAGEM PÓS-LOGIN
-        
-        botao_ok_mensagem_tela = wait.until(EC.element_to_be_clickable((By.ID, "pt1:warnMessageDec:frmExec:btnNewWarnMessageOK")))
-        botao_ok_mensagem_tela.click()
-        time.sleep(4)
-        botao_entrar_comunica = wait.until(EC.element_to_be_clickable((By.ID, "pt1:itLinks:1:j_id__ctru33")))
-        botao_entrar_comunica.click()
-        
-        # Pausa final para garantir que a página principal carregou completamente
-        # antes de o robô prosseguir para a próxima parte da automação (tela de comunicas).
-        time.sleep(10) 
+
+        print("Aguardando botão OK da mensagem pós-login...")
+        try:
+            botao_ok_mensagem_tela = wait.until(EC.element_to_be_clickable((By.ID, "pt1:warnMessageDec:frmExec:btnNewWarnMessageOK")))
+            print("Botão OK mensagem encontrado. Clicando...")
+            botao_ok_mensagem_tela.click()
+            time.sleep(4)
+
+            try:
+                driver.save_screenshot('/app/debug_05_apos_ok_mensagem.png')
+                print("Screenshot 5 salvo: após OK mensagem")
+            except:
+                pass
+
+        except Exception as e:
+            print(f"AVISO: Botão OK mensagem não encontrado (pode não existir): {e}")
+            # Tenta continuar mesmo sem este botão
+            try:
+                driver.save_screenshot('/app/debug_aviso_sem_ok_mensagem.png')
+            except:
+                pass
+
+        print("Aguardando botão de entrar em comunica...")
+        try:
+            botao_entrar_comunica = wait.until(EC.element_to_be_clickable((By.ID, "pt1:itLinks:1:j_id__ctru33")))
+            print("Botão entrar comunica encontrado. Clicando...")
+            botao_entrar_comunica.click()
+
+            # Pausa final para garantir que a página principal carregou completamente
+            # antes de o robô prosseguir para a próxima parte da automação (tela de comunicas).
+            time.sleep(10)
+
+            try:
+                driver.save_screenshot('/app/debug_06_tela_comunicas.png')
+                print("Screenshot 6 salvo: tela de comunicas")
+                print(f"URL atual: {driver.current_url}")
+            except:
+                pass
+
+        except Exception as e:
+            print(f"ERRO ao localizar/clicar botão entrar comunica: {e}")
+            try:
+                driver.save_screenshot('/app/debug_erro_entrar_comunica.png')
+                print(f"URL atual: {driver.current_url}")
+            except:
+                pass
+            raise 
 
         # AÇÕES NA TELA DE COMUNICAS (FILTRO)
         
