@@ -151,6 +151,24 @@ Certifique-se de que o arquivo `.env` está presente na VPS com:
 - EMAIL_REMETENTE
 - SENHA_REMETENTE
 
+**IMPORTANTE**: As variáveis NÃO devem ter espaços no início ou fim dos valores!
+
+### ❌ Errado (com espaço):
+```env
+USUARIO=05512065785
+SENHA= S441e
+EMAIL_REMETENTE= user@gmail.com
+```
+
+### ✅ Correto (sem espaço):
+```env
+USUARIO=05512065785
+SENHA=S441e
+EMAIL_REMETENTE=user@gmail.com
+```
+
+**Nota**: O código agora usa `.strip()` automaticamente para remover espaços, mas é melhor manter o `.env` limpo.
+
 ## Ajustes de Timeouts
 
 Se o site estiver lento na VPS, pode ser necessário aumentar os timeouts:
