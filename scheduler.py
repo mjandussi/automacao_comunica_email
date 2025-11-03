@@ -60,7 +60,7 @@ schedule.every().day.at("17:00").do(run_scraper)
 # Mensagem de inicialização
 logger.info("=" * 60)
 logger.info("SCHEDULER INICIADO!")
-logger.info("Horário configurado: diariamente as 9, 12, 15 e 18 horas")
+logger.info("Horário configurado: diariamente as 9, 11, 13, 15 e 17 horas")
 logger.info("Timezone: America/Sao_Paulo")
 logger.info("Aguardando próxima execução...")
 logger.info("=" * 60)

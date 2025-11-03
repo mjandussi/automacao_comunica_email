@@ -590,8 +590,7 @@ def main():
 # ==============================================================================
 print("----------------------------------")
 print("--- Robô de Comunicas Iniciado ---")
-print("Para encerrar, clique neste terminal e pressione Ctrl+C.")
-print("Análise só com Palavras Chave")
+print("Análise só com Palavras Chave e uso de Regex")
 print("----------------------------------")
 
 
