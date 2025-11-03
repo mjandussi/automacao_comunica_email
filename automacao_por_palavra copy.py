@@ -15,9 +15,6 @@ import html
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-import traceback
-import socket
-
 
 
 # Carrega as variáveis do arquivo .env
@@ -81,10 +78,10 @@ DICIONARIO_DE_BLOQUEIO_REGEX = {
 
 
 
+
 # Configurações de e-mail
 EMAIL_REMETENTE = os.getenv("EMAIL_REMETENTE", "").strip()
 SENHA_REMETENTE = os.getenv("SENHA_REMETENTE", "").strip()
-
 
 def salvar_screenshot_debug(driver, nome_arquivo, descricao=""):
     """Salva screenshots de debug apenas quando habilitado por variável de ambiente."""
@@ -104,8 +101,6 @@ def salvar_screenshot_debug(driver, nome_arquivo, descricao=""):
             print(f"[DEBUG] Screenshot salvo: {destino}")
     except Exception as err:
         print(f"[DEBUG] Falha ao salvar screenshot '{nome_arquivo}': {err}")
-
-        
 
 def enviar_email(destinatarios, assunto, corpo_html):
     try:
@@ -128,43 +123,6 @@ def enviar_email(destinatarios, assunto, corpo_html):
         return False
 
 
-
-
-def enviar_alerta_falha(exc: Exception, log_da_execucao, driver=None):
-    """Manda e-mail SOMENTE quando ocorre erro na automação."""
-    tb = traceback.format_exc()
-    host = socket.gethostname()
-    url_atual = ""
-    try:
-        if driver:
-            url_atual = getattr(driver, "current_url", "")
-    except:
-        pass
-
-    # Reaproveita seu formatador de log
-    try:
-        log_html = formatar_log_para_html(log_da_execucao)
-    except Exception:
-        log_html = "<i>(Falha ao formatar log)</i>"
-
-    corpo_html = f"""
-    <div style="font-family:Arial, sans-serif; line-height:1.5">
-      <h3>🛑 Falha na Automação</h3>
-      <p><b>Host:</b> {host}</p>
-      <p><b>URL atual:</b> {html.escape(url_atual)}</p>
-      <p><b>Erro:</b> <code>{html.escape(repr(exc))}</code></p>
-      <p><b>Traceback:</b></p>
-      <pre style="white-space:pre-wrap">{html.escape(tb)}</pre>
-      <hr>
-      <h4>Log parcial da execução</h4>
-      <div style="border:1px solid #ddd; padding:10px; background:#f9f9f9">{log_html}</div>
-    </div>
-    """
-    enviar_email(
-        destinatarios=DESTINATARIOS,
-        assunto=f"🛑 Falha na Automação (host {host})",
-        corpo_html=corpo_html
-    )
 
 
 
@@ -580,14 +538,7 @@ def main():
 
     # Bloco de exceção e finalização permanecem os mesmos
     except Exception as e:
-        print(f"Ocorreu um erro durante a automação: {e}")
-        # dispara e-mail SOMENTE em caso de erro
-        try:
-            enviar_alerta_falha(e, log_da_execucao, driver)
-        finally:
-            # opcional: re-lançar para manter código de saída e logs de erro
-            raise
-
+        print(f"Ocorreu um erro durante a automação do login: {e}")
 
 
     finally:
