@@ -11,9 +11,8 @@ import email.message
 import time
 import re
 import schedule
-import html
+import html 
 import os
-from pathlib import Path
 from dotenv import load_dotenv
 
 
@@ -26,10 +25,6 @@ url_do_siafe = "https://siafe2.fazenda.rj.gov.br/Siafe/faces/login.jsp"
 USUARIO = os.getenv("USUARIO", "").strip()  # Remove espaços no início/fim
 SENHA = os.getenv("SENHA", "").strip()  # Remove espaços no início/fim
 DESTINATARIOS = os.getenv("DESTINATARIOS", "").strip()  # Remove espaços no início/fim
-
-# Flag para controlar captura de screenshots de debug
-DEBUG_SCREENSHOTS_ENABLED = os.getenv("DEBUG_SCREENSHOTS", "").strip().lower() in {"1", "true", "on", "yes"}
-DEBUG_SCREENSHOT_DIR = os.getenv("DEBUG_SCREENSHOT_DIR", "/app").strip()
 
 
 # ==============================================================================
@@ -82,25 +77,6 @@ DICIONARIO_DE_BLOQUEIO_REGEX = {
 # Configurações de e-mail
 EMAIL_REMETENTE = os.getenv("EMAIL_REMETENTE", "").strip()
 SENHA_REMETENTE = os.getenv("SENHA_REMETENTE", "").strip()
-
-def salvar_screenshot_debug(driver, nome_arquivo, descricao=""):
-    """Salva screenshots de debug apenas quando habilitado por variável de ambiente."""
-    if not DEBUG_SCREENSHOTS_ENABLED:
-        return
-
-    destino = Path(nome_arquivo)
-    if DEBUG_SCREENSHOT_DIR:
-        destino = Path(DEBUG_SCREENSHOT_DIR) / nome_arquivo
-
-    try:
-        destino.parent.mkdir(parents=True, exist_ok=True)
-        driver.save_screenshot(str(destino))
-        if descricao:
-            print(f"[DEBUG] Screenshot salvo ({descricao}): {destino}")
-        else:
-            print(f"[DEBUG] Screenshot salvo: {destino}")
-    except Exception as err:
-        print(f"[DEBUG] Falha ao salvar screenshot '{nome_arquivo}': {err}")
 
 def enviar_email(destinatarios, assunto, corpo_html):
     try:
@@ -238,8 +214,12 @@ def main():
     driver.get(url_do_siafe)
     print("Página de login aberta")
 
-    # Salva screenshot inicial apenas quando debug está habilitado
-    salvar_screenshot_debug(driver, "debug_01_pagina_inicial.png", "página inicial")
+    # Salvar screenshot inicial para debug
+    try:
+        driver.save_screenshot('/app/debug_01_pagina_inicial.png')
+        print("Screenshot 1 salvo: página inicial")
+    except:
+        pass  # Ignora erro de screenshot em ambiente Windows
 
     try:
         # Cria um objeto de espera. Aumentei para 30s para dar mais margem em ambientes lentos.
@@ -254,17 +234,20 @@ def main():
             campo_usuario.send_keys(USUARIO)
             time.sleep(2)
 
-            # Screenshot após preencher usuário (opcional)
-            salvar_screenshot_debug(driver, "debug_02_usuario_preenchido.png", "usuário preenchido")
+            # Screenshot após preencher usuário
+            try:
+                driver.save_screenshot('/app/debug_02_usuario_preenchido.png')
+                print("Screenshot 2 salvo: usuário preenchido")
+            except:
+                pass
 
         except Exception as e:
             print(f"ERRO ao localizar/preencher campo de usuário: {e}")
-            salvar_screenshot_debug(driver, "debug_erro_usuario.png", "erro ao preencher usuário")
-            if DEBUG_SCREENSHOTS_ENABLED:
-                try:
-                    print(f"HTML da página: {driver.page_source[:500]}")  # Primeiros 500 caracteres
-                except Exception as html_err:
-                    print(f"Falha ao obter HTML para debug: {html_err}")
+            try:
+                driver.save_screenshot('/app/debug_erro_usuario.png')
+                print(f"HTML da página: {driver.page_source[:500]}")  # Primeiros 500 caracteres
+            except:
+                pass
             raise
 
         print("Aguardando campo de senha...")
@@ -276,20 +259,32 @@ def main():
             time.sleep(2)
         except Exception as e:
             print(f"ERRO ao localizar/preencher campo de senha: {e}")
-            salvar_screenshot_debug(driver, "debug_erro_senha.png", "erro ao preencher senha")
+            try:
+                driver.save_screenshot('/app/debug_erro_senha.png')
+            except:
+                pass
             raise
 
         print("Aguardando botão OK...")
         try:
             botao_ok = wait.until(EC.element_to_be_clickable((By.ID, "loginBox:btnConfirmar")))
             print("Botão OK encontrado. Clicando...")
+
             # Screenshot antes de clicar
-            salvar_screenshot_debug(driver, "debug_03_antes_login.png", "antes de clicar em login")
+            try:
+                driver.save_screenshot('/app/debug_03_antes_login.png')
+                print("Screenshot 3 salvo: antes de clicar em login")
+            except:
+                pass
+
             botao_ok.click()
             print("Botão OK clicado. Aguardando resposta...")
         except Exception as e:
             print(f"ERRO ao localizar/clicar botão OK: {e}")
-            salvar_screenshot_debug(driver, "debug_erro_botao_ok.png", "erro ao clicar em OK")
+            try:
+                driver.save_screenshot('/app/debug_erro_botao_ok.png')
+            except:
+                pass
             raise
 
         # Aguardar o redirecionamento após o login (espera a URL mudar)
@@ -297,9 +292,12 @@ def main():
         time.sleep(5)
 
         # Screenshot após login
-        salvar_screenshot_debug(driver, "debug_04_apos_login.png", "após login")
-        if DEBUG_SCREENSHOTS_ENABLED:
+        try:
+            driver.save_screenshot('/app/debug_04_apos_login.png')
+            print("Screenshot 4 salvo: após login")
             print(f"URL atual: {driver.current_url}")
+        except:
+            pass
 
         # AÇÕES NA TELA DE MENSAGEM PÓS-LOGIN
 
@@ -315,7 +313,11 @@ def main():
             botao_ok_encontrado = True
             time.sleep(4)
 
-            salvar_screenshot_debug(driver, "debug_05_apos_ok_mensagem.png", "após confirmar mensagem")
+            try:
+                driver.save_screenshot('/app/debug_05_apos_ok_mensagem.png')
+                print("Screenshot 5 salvo: após OK mensagem")
+            except:
+                pass
 
         except Exception as e1:
             print(f"Tentativa 1 falhou: {e1}")
@@ -329,7 +331,11 @@ def main():
                 botao_ok_encontrado = True
                 time.sleep(4)
 
-                salvar_screenshot_debug(driver, "debug_05_apos_ok_mensagem.png", "após confirmar mensagem")
+                try:
+                    driver.save_screenshot('/app/debug_05_apos_ok_mensagem.png')
+                    print("Screenshot 5 salvo: após OK mensagem")
+                except:
+                    pass
 
             except Exception as e2:
                 print(f"Tentativa 2 falhou: {e2}")
@@ -343,16 +349,22 @@ def main():
                     botao_ok_encontrado = True
                     time.sleep(4)
 
-                    salvar_screenshot_debug(driver, "debug_05_apos_ok_mensagem.png", "após confirmar mensagem")
+                    try:
+                        driver.save_screenshot('/app/debug_05_apos_ok_mensagem.png')
+                        print("Screenshot 5 salvo: após OK mensagem")
+                    except:
+                        pass
 
                 except Exception as e3:
                     print(f"Tentativa 3 falhou: {e3}")
                     print("AVISO: Botão OK mensagem não encontrado por nenhuma estratégia (pode não existir)")
                     # Salva screenshot para análise
-                    salvar_screenshot_debug(driver, "debug_aviso_sem_ok_mensagem.png", "sem botão OK pós-login")
-                    if DEBUG_SCREENSHOTS_ENABLED:
+                    try:
+                        driver.save_screenshot('/app/debug_aviso_sem_ok_mensagem.png')
                         print(f"URL atual: {driver.current_url}")
                         print("Continuando sem clicar no botão OK...")
+                    except:
+                        pass
 
         print("Aguardando botão de entrar em comunica...")
         try:
@@ -364,15 +376,20 @@ def main():
             # antes de o robô prosseguir para a próxima parte da automação (tela de comunicas).
             time.sleep(10)
 
-            salvar_screenshot_debug(driver, "debug_06_tela_comunicas.png", "tela de comunicas")
-            if DEBUG_SCREENSHOTS_ENABLED:
+            try:
+                driver.save_screenshot('/app/debug_06_tela_comunicas.png')
+                print("Screenshot 6 salvo: tela de comunicas")
                 print(f"URL atual: {driver.current_url}")
+            except:
+                pass
 
         except Exception as e:
             print(f"ERRO ao localizar/clicar botão entrar comunica: {e}")
-            salvar_screenshot_debug(driver, "debug_erro_entrar_comunica.png", "erro ao entrar em comunicas")
-            if DEBUG_SCREENSHOTS_ENABLED:
+            try:
+                driver.save_screenshot('/app/debug_erro_entrar_comunica.png')
                 print(f"URL atual: {driver.current_url}")
+            except:
+                pass
             raise 
 
         # AÇÕES NA TELA DE COMUNICAS (FILTRO)

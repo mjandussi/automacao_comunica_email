@@ -3,6 +3,7 @@ Scheduler para execução automática do scraper de Envio de Comunicas por Email
 Roda diariamente às 9, 12, 15 e 18h (horário de Brasília)
 """
 
+import os
 import time
 import logging
 import sys
@@ -13,13 +14,17 @@ import schedule
 from automacao_por_palavra import main
 
 # Configurar logging
+log_handlers = [logging.StreamHandler(sys.stdout)]
+
+log_file_path = os.getenv("SCHEDULER_LOG_FILE", "").strip()
+if log_file_path:
+    # Permite habilitar log em arquivo apenas quando configurado explicitamente
+    log_handlers.append(logging.FileHandler(log_file_path, encoding='utf-8'))
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler('scheduler.log', encoding='utf-8')
-    ]
+    handlers=log_handlers,
 )
 logger = logging.getLogger(__name__)
 
@@ -47,9 +52,10 @@ def run_scraper():
 
 #### Agendando a função para os horários desejados
 schedule.every().day.at("09:00").do(run_scraper)
-schedule.every().day.at("12:00").do(run_scraper)
+schedule.every().day.at("11:00").do(run_scraper)
+schedule.every().day.at("13:00").do(run_scraper)
 schedule.every().day.at("15:00").do(run_scraper)
-schedule.every().day.at("18:00").do(run_scraper)
+schedule.every().day.at("17:00").do(run_scraper)
 
 # Mensagem de inicialização
 logger.info("=" * 60)
