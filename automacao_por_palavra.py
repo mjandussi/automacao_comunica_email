@@ -54,21 +54,19 @@ PALAVRAS_DE_ENVIO_OBRIGATORIO = [
 DICIONARIO_DE_BLOQUEIO_REGEX = {
     # PARTE CADASTRAL FINANCEIRA
     'Inscrição Genérica': r'i[n]scri[cç]([aã]o|[oõ]es)? gen[eé]ricas?',
-    'Credor Genérico': r'credor(es)? gen[eé]ricos?',
+    'Credor Genérico': r'credor(es)? gen[eé]ricos?|cgs',
     'Bloqueio Judicial': r'bloqueios? (judicial|judiciais)|cria[cç]([aã]o|[oõ]es)? de bj',
-    
     'Código de Barras': r'codbarras|c[oó]digos? de barras?|altera[cç]([aã]o|[oõ]es)? de cnpj em (codbarras|c[oó]digo de barras)',
-    
     'Dados Bancários': r'bancos?|ag[eê]ncias?|domic[ií]lios?|cadastros? de dombans?',
-    
     'Boleto/Credor': r'boletos?|credor[es]?',
     
     # PARTE CADASTRAL
     'Cadastro em Geral': r'informa[cç][aã]oes cadastrais|requisi[cç]([aã]o|[oõ]es)? de pequenos? valor(es)?',
     'Cadastro de Convênio': r'cadastros? das? contas? (de|nos) convenios?',
     'Atualização de Dados': r'atualiza[cç]([aã]o|[oõ]es)? do novo diretor|nomea[cç][aã]o de contador|alterar os? nomes? (de|das|nas) unidades? gestoras?',
-    'Programa de Trabalho': r'cadastr[oa][a-z]* no sistema do programa de trabalho|cadastros? (de|dos|nos) programas? de trabalhos?',
-    
+    'Programa de Trabalho': r'cadastr[oa][a-z]* no sistema do programa de trabalho|cadastros? (de|do|dos|nos) programas? de trabalhos?|liberação? (de|do|dos|nos) programas? de trabalhos?|inativação? (de|do|dos|nos) programas? de trabalhos?',
+    'Detalhamento de Fonte': r'cadastros? (de|do|dos|nos) detalhamentos? (de|do|dos|nos) fontes?',
+
     # PARTE DE ACESSO E PERFIL (SIAFEM/SIAFERIO)
     'Acesso ou Senha': r'acessos?|senhas? de acesso ao siafem|solicita[cç][aã]o senha siafem|siafem',
     'Reativação': r'reativa[r|d]?[a-z]*|desbloqueios? de usu[aá]rios?|reativa[cç][aã]o de perfil',
@@ -211,6 +209,8 @@ def formatar_log_para_html(lista_de_logs):
             linha_formatada = f'<div style="color: #5cb85c; font-weight: bold;">{linha_segura}</div>' # Verde
         elif "[INFORMATIVO]" in linha_segura:
              linha_formatada = f'<div style="color: #5bc0de; font-weight: bold;">{linha_segura}</div>' # Azul
+        elif "[POSSÍVEL PRIORIDADE]" in linha_segura:
+             linha_formatada = f'<div style="color: #d5ee02; font-weight: bold;">{linha_segura}</div>' # Amarelo
         
 
         # 4. Linhas normais (sem formatação especial)
