@@ -15,6 +15,9 @@ import html
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+import traceback
+import socket
+
 
 
 # Carrega as variáveis do arquivo .env
@@ -51,21 +54,19 @@ PALAVRAS_DE_ENVIO_OBRIGATORIO = [
 DICIONARIO_DE_BLOQUEIO_REGEX = {
     # PARTE CADASTRAL FINANCEIRA
     'Inscrição Genérica': r'i[n]scri[cç]([aã]o|[oõ]es)? gen[eé]ricas?',
-    'Credor Genérico': r'credor(es)? gen[eé]ricos?',
+    'Credor Genérico': r'credor(es)? gen[eé]ricos?|cgs',
     'Bloqueio Judicial': r'bloqueios? (judicial|judiciais)|cria[cç]([aã]o|[oõ]es)? de bj',
-    
     'Código de Barras': r'codbarras|c[oó]digos? de barras?|altera[cç]([aã]o|[oõ]es)? de cnpj em (codbarras|c[oó]digo de barras)',
-    
     'Dados Bancários': r'bancos?|ag[eê]ncias?|domic[ií]lios?|cadastros? de dombans?',
-    
     'Boleto/Credor': r'boletos?|credor[es]?',
     
     # PARTE CADASTRAL
     'Cadastro em Geral': r'informa[cç][aã]oes cadastrais|requisi[cç]([aã]o|[oõ]es)? de pequenos? valor(es)?',
     'Cadastro de Convênio': r'cadastros? das? contas? (de|nos) convenios?',
     'Atualização de Dados': r'atualiza[cç]([aã]o|[oõ]es)? do novo diretor|nomea[cç][aã]o de contador|alterar os? nomes? (de|das|nas) unidades? gestoras?',
-    'Programa de Trabalho': r'cadastr[oa][a-z]* no sistema do programa de trabalho|cadastros? (de|dos|nos) programas? de trabalhos?',
-    
+    'Programa de Trabalho': r'cadastr[oa][a-z]* no sistema do programa de trabalho|cadastros? (de|do|dos|nos) programas? de trabalhos?|liberação? (de|do|dos|nos) programas? de trabalhos?|inativação? (de|do|dos|nos) programas? de trabalhos?',
+    'Detalhamento de Fonte': r'cadastros? (de|do|dos|nos) detalhamentos? (de|do|dos|nos) fontes?',
+
     # PARTE DE ACESSO E PERFIL (SIAFEM/SIAFERIO)
     'Acesso ou Senha': r'acessos?|senhas? de acesso ao siafem|solicita[cç][aã]o senha siafem|siafem',
     'Reativação': r'reativa[r|d]?[a-z]*|desbloqueios? de usu[aá]rios?|reativa[cç][aã]o de perfil',
@@ -78,10 +79,10 @@ DICIONARIO_DE_BLOQUEIO_REGEX = {
 
 
 
-
 # Configurações de e-mail
 EMAIL_REMETENTE = os.getenv("EMAIL_REMETENTE", "").strip()
 SENHA_REMETENTE = os.getenv("SENHA_REMETENTE", "").strip()
+
 
 def salvar_screenshot_debug(driver, nome_arquivo, descricao=""):
     """Salva screenshots de debug apenas quando habilitado por variável de ambiente."""
@@ -101,6 +102,8 @@ def salvar_screenshot_debug(driver, nome_arquivo, descricao=""):
             print(f"[DEBUG] Screenshot salvo: {destino}")
     except Exception as err:
         print(f"[DEBUG] Falha ao salvar screenshot '{nome_arquivo}': {err}")
+
+        
 
 def enviar_email(destinatarios, assunto, corpo_html):
     try:
@@ -123,6 +126,43 @@ def enviar_email(destinatarios, assunto, corpo_html):
         return False
 
 
+
+
+def enviar_alerta_falha(exc: Exception, log_da_execucao, driver=None):
+    """Manda e-mail SOMENTE quando ocorre erro na automação."""
+    tb = traceback.format_exc()
+    host = socket.gethostname()
+    url_atual = ""
+    try:
+        if driver:
+            url_atual = getattr(driver, "current_url", "")
+    except:
+        pass
+
+    # Reaproveita seu formatador de log
+    try:
+        log_html = formatar_log_para_html(log_da_execucao)
+    except Exception:
+        log_html = "<i>(Falha ao formatar log)</i>"
+
+    corpo_html = f"""
+    <div style="font-family:Arial, sans-serif; line-height:1.5">
+      <h3>🛑 Falha na Automação</h3>
+      <p><b>Host:</b> {host}</p>
+      <p><b>URL atual:</b> {html.escape(url_atual)}</p>
+      <p><b>Erro:</b> <code>{html.escape(repr(exc))}</code></p>
+      <p><b>Traceback:</b></p>
+      <pre style="white-space:pre-wrap">{html.escape(tb)}</pre>
+      <hr>
+      <h4>Log parcial da execução</h4>
+      <div style="border:1px solid #ddd; padding:10px; background:#f9f9f9">{log_html}</div>
+    </div>
+    """
+    enviar_email(
+        destinatarios=DESTINATARIOS,
+        assunto=f"🛑 Falha na Automação (host {host})",
+        corpo_html=corpo_html
+    )
 
 
 
@@ -169,6 +209,8 @@ def formatar_log_para_html(lista_de_logs):
             linha_formatada = f'<div style="color: #5cb85c; font-weight: bold;">{linha_segura}</div>' # Verde
         elif "[INFORMATIVO]" in linha_segura:
              linha_formatada = f'<div style="color: #5bc0de; font-weight: bold;">{linha_segura}</div>' # Azul
+        elif "[POSSÍVEL PRIORIDADE]" in linha_segura:
+             linha_formatada = f'<div style="color: #d5ee02; font-weight: bold;">{linha_segura}</div>' # Amarelo
         
 
         # 4. Linhas normais (sem formatação especial)
@@ -538,7 +580,14 @@ def main():
 
     # Bloco de exceção e finalização permanecem os mesmos
     except Exception as e:
-        print(f"Ocorreu um erro durante a automação do login: {e}")
+        print(f"Ocorreu um erro durante a automação: {e}")
+        # dispara e-mail SOMENTE em caso de erro
+        try:
+            enviar_alerta_falha(e, log_da_execucao, driver)
+        finally:
+            # opcional: re-lançar para manter código de saída e logs de erro
+            raise
+
 
 
     finally:
