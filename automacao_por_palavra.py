@@ -68,7 +68,6 @@ DICIONARIO_DE_ENVIO_PRIORITARIO = {
         r'(?:\s+(?:no|do|com|em))?\s+(?:siaferio|siafe[-\s]*rio|siaf[-\s]*e[-\s]*rio)\b'
         r'|\bsiaferio\s+(?:fora\s+do\s+ar|inoperante|com\s+problema(?:s)?|nao\s+(?:funciona|carrega|abre))\b',
 
-
     'FlexVision':
         r'\bflexvision\b|\bflex[-\s]*vision\b',
 
