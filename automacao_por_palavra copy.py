@@ -57,51 +57,9 @@ setor_excluir_pesquisa = "SUGESC"
 # Defina quantos comunicas você quer processar
 #numero_de_comunicas_para_processar = 50 # Colocar um número alto para pegar todos
 
-# ==============================================================================
-# DICIONÁRIO DE ENVIO PRIORITÁRIO COM REGEX (TEXTO NORMALIZADO)
-# ==============================================================================
-
-DICIONARIO_DE_ENVIO_PRIORITARIO = {
-    # ── SISTEMAS E TECNOLOGIA ──────────────────────────────────────────────────
-    'Problemas SIAFERIO':
-        r'\b(?:problema(?:s)?|erro(?:s)?|falha(?:s)?|indisponibilidade|instabilidade|lentidao)'
-        r'(?:\s+(?:no|do|com|em))?\s+(?:siaferio|siafe[-\s]*rio|siaf[-\s]*e[-\s]*rio)\b'
-        r'|\bsiaferio\s+(?:fora\s+do\s+ar|inoperante|com\s+problema(?:s)?|nao\s+(?:funciona|carrega|abre))\b',
-
-
-    'FlexVision':
-        r'\bflexvision\b|\bflex[-\s]*vision\b',
-
-    'Sistemas Fora do Ar':
-        r'\b(?:sistema(?:s)?|servico(?:s)?|aplicacao(?:oes)?)\s+(?:fora\s+do\s+ar|indisponivel(?:eis)?|inoperante(?:s)?)\b'
-        r'|\b(?:sem\s+acesso|nao\s+(?:acessa|conecta|funciona))\s+(?:ao\s+)?(?:sistema(?:s)?|siaferio|siafem)\b'
-        r'|\b(?:siaferio|siafe[-\s]*rio|siaf[-\s]*e[-\s]*rio|siafem|siaf[-\s]*em)\s+fora\s+do\s+ar\b',
-
-    # ── URGÊNCIAS E PROBLEMAS CRÍTICOS ─────────────────────────────────────────
-    'Urgente':
-        r'\burgent(?:e|es?|issim[ao])\b|\bpriorit[aá]ri[ao](?:s)?\b|\bemerg[eê]ncia\b'
-        r'|\basap\b|\bcom\s+urg[eê]ncia\b|\bpara\s+hoje\b|\bimediato\b',
-
-    'Erro Crítico':
-        r'\b(?:erro\s+(?:critico|grave|fatal|sistema)|falha\s+(?:critica|grave|geral))\b'
-        r'|\b(?:nao\s+(?:consegue|consigo)|impossivel)\s+(?:acessar|executar|processar|finalizar)\b'
-        r'|\bsistema\s+(?:travado|congelado|nao\s+responde)\b',
-
-
-    # ── FECHAMENTO/FIM DE PERÍODO ──────────────────────────────────────────────
-    'Fechamento':
-        r'\b(?:fechamento|encerramento)\s+(?:do\s+)?(?:mes|periodo|exercicio|balanco)\b'
-        r'|\bfim\s+do\s+(?:mes|ano|exercicio|periodo)\b'
-        r'|\b(?:prestacao|envio)\s+de\s+contas?\b',
-
-    'Relatório Urgente':
-        r'\b(?:relatorio(?:s)?|demonstrativo(?:s)?)\s+(?:urgente(?:s)?|prioritario(?:s)?|para\s+(?:hoje|amanh[aã]))\b'
-        r'|\b(?:balancete|dre|demonstracao)\s+(?:urgente|prioritari[ao])\b',
-}
-
-# --- Lista Simples de Palavras de ENVIO PRIORITÁRIO (mantida para compatibilidade) ---
+# --- Lista de Palavras-Chave de ENVIO PRIORITÁRIO ---
 PALAVRAS_DE_ENVIO_OBRIGATORIO = [
-    'flexvision',  # mantida para compatibilidade com código existente
+    'flexvision',
 ]
 
 
@@ -631,28 +589,13 @@ def main():
             # ETAPA A: Verificação de Prioridade (Envio Obrigatório)
             # Usa texto normalizado para busca mais robusta
             encontrou_prioritaria = False
-            conceito_prioritario = ""
-            trecho_prioritario = ""
-            
-            # A1: Verificar dicionário de prioridades com REGEX
-            for conceito, padrao in DICIONARIO_DE_ENVIO_PRIORITARIO.items():
-                match = re.search(padrao, comunica_normalizado, flags=re.IGNORECASE|re.DOTALL)
-                if match:
+            for palavra in PALAVRAS_DE_ENVIO_OBRIGATORIO:
+                palavra_normalizada = normalizar(palavra)
+                padrao = r'\b' + re.escape(palavra_normalizada) + r'\b'
+                if re.search(padrao, comunica_normalizado, re.IGNORECASE):
                     encontrou_prioritaria = True
-                    conceito_prioritario = conceito
-                    trecho_prioritario = match.group(0)
-                    motivo_da_decisao = f"[ENVIO PRIORITÁRIO] {conceito_prioritario} detectado (trecho: \"{trecho_prioritario}\")."
+                    motivo_da_decisao = f"[POSSÍVEL PRIORIDADE] Palavra de envio obrigatório '{palavra}' encontrada."
                     break
-            
-            # A2: Se não encontrou no dicionário, verifica a lista simples (compatibilidade)
-            if not encontrou_prioritaria:
-                for palavra in PALAVRAS_DE_ENVIO_OBRIGATORIO:
-                    palavra_normalizada = normalizar(palavra)
-                    padrao = r'\b' + re.escape(palavra_normalizada) + r'\b'
-                    if re.search(padrao, comunica_normalizado, re.IGNORECASE):
-                        encontrou_prioritaria = True
-                        motivo_da_decisao = f"[ENVIO PRIORITÁRIO] Palavra-chave '{palavra}' encontrada."
-                        break
 
             if encontrou_prioritaria:
                 email_deve_ser_enviado = True
