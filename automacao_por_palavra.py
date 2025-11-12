@@ -17,11 +17,25 @@ from pathlib import Path
 from dotenv import load_dotenv
 import traceback
 import socket
+import unicodedata
 
 
 
 # Carrega as variáveis do arquivo .env
 load_dotenv()
+
+# ==============================================================================
+# FUNÇÃO DE NORMALIZAÇÃO (REMOVE ACENTOS + MINÚSCULAS)
+# ==============================================================================
+
+def normalizar(txt: str) -> str:
+    """
+    Normaliza texto removendo acentos e convertendo para minúsculas.
+    Isso torna as regex mais simples e robustas.
+    """
+    txt = unicodedata.normalize("NFD", txt)
+    txt = "".join(ch for ch in txt if unicodedata.category(ch) != "Mn")  # remove acentos
+    return txt.lower()
 
 # --- Configurações pro Selenium e SIAFERIO ---
 PATH_DO_DRIVER = "msedgedriver.exe"
@@ -49,32 +63,89 @@ PALAVRAS_DE_ENVIO_OBRIGATORIO = [
 ]
 
 
-# Mapeamento de Assuntos de Bloqueio para seus Padrões Regex
-# Cada chave é um conceito, e o valor é o padrão regex para encontrá-lo
-DICIONARIO_DE_BLOQUEIO_REGEX = {
-    # PARTE CADASTRAL FINANCEIRA
-    'Inscrição Genérica': r'i[n]scri[cç]([aã]o|[oõ]es)? gen[eé]ricas?',
-    'Credor Genérico': r'credor(es)? gen[eé]ricos?|cgs',
-    'Bloqueio Judicial': r'bloqueios? (judicial|judiciais)|cria[cç]([aã]o|[oõ]es)? de bj',
-    'Código de Barras': r'codbarras|c[oó]digos? de barras?|altera[cç]([aã]o|[oõ]es)? de cnpj em (codbarras|c[oó]digo de barras)',
-    'Dados Bancários': r'bancos?|ag[eê]ncias?|domic[ií]lios?|cadastros? de dombans?',
-    'Boleto/Credor': r'boletos?|credor[es]?',
-    
-    # PARTE CADASTRAL
-    'Cadastro em Geral': r'informa[cç][aã]oes cadastrais|requisi[cç]([aã]o|[oõ]es)? de pequenos? valor(es)?',
-    'Cadastro de Convênio': r'cadastros? das? contas? (de|nos) convenios?',
-    'Atualização de Dados': r'atualiza[cç]([aã]o|[oõ]es)? do novo diretor|nomea[cç][aã]o de contador|alterar os? nomes? (de|das|nas) unidades? gestoras?',
-    'Programa de Trabalho': r'cadastr[oa][a-z]* no sistema do programa de trabalho|cadastros? (de|do|dos|nos) programas? de trabalhos?|liberação? (de|do|dos|nos) programas? de trabalhos?|inativação? (de|do|dos|nos) programas? de trabalhos?',
-    'Detalhamento de Fonte': r'cadastros? (de|do|dos|nos) detalhamentos? (de|do|dos|nos) fontes?',
+# ==============================================================================
+# PADRÕES AUXILIARES PARA REUTILIZAÇÃO EM REGEX
+# ==============================================================================
 
-    # PARTE DE ACESSO E PERFIL (SIAFEM/SIAFERIO)
-    'Acesso ou Senha': r'acessos?|senhas? de acesso ao siafem|solicita[cç][aã]o senha siafem|siafem',
-    'Reativação': r'reativa[r|d]?[a-z]*|desbloqueios? de usu[aá]rios?|reativa[cç][aã]o de perfil',
-    'Perfil ou Gestor de Usuários': r'gestor de usu[aá]rios?|perfil de usu[aá]rios?|troca de gestor',
-    
-    # OUTROS ASSUNTOS
-    'LISCONTIR': r'liscontir|desbloqueio de empenho',
-    'Desconsiderar': r'desconsiderar'
+PREP = r'(?:de|do|da|dos|das|no|na|nos|nas)'
+PT_OBJ = r'programa(?:s)?\s*(?:de|-)?\s*trabalho(?:s)?'   # "programa(s) de trabalho(s)"
+ACOES = r'(?:cadastr(?:o(?:s)?|ar|ado(?:s)?|amento|ou)|libera(?:cao|r|do(?:s)?)|inativa(?:cao|r|do(?:s)?))'
+
+# ==============================================================================
+# DICIONÁRIO DE BLOQUEIO COM REGEX ROBUSTAS (TEXTO NORMALIZADO)
+# ==============================================================================
+
+DICIONARIO_DE_BLOQUEIO_REGEX = {
+    # ── PARTE CADASTRAL FINANCEIRA ───────────────────────────────────────────────
+    'Inscricao Generica':
+        r'\binscri(?:cao|coes)\s+generica(?:s)?\b',
+
+    'Credor Generico':
+        r'\bcredor(?:es)?\s+generic(?:o|os)\b|\bcgs\b',
+
+    'Bloqueio Judicial':
+        r'\bbloqueio(?:s)?\s+judicia(?:l|is)\b|\bcriaca(?:o|oes)\s+de\s+bj\b|\bbj\b',
+
+    'Codigo de Barras':
+        r'\b(?:cod(?:\.|\s*)barras?|codigo(?:s)?\s+de\s+barras?)\b'
+        r'|\balterac(?:ao|oes)\s+de\s+cnpj\s+em\s+(?:cod(?:\.|\s*)barras?|codigo\s+de\s+barras?)\b',
+
+    'Dados Bancarios':
+        r'\bdados\s+bancari(?:o|os)\b'
+        r'|\bdomicilio\s+bancari(?:o|os)\b'
+        r'|\b(alterac(?:ao|oes)|cadastro|atualizac(?:ao|oes))\s+(?:de\s+)?'
+        r'(?:banco(?:s)?|agencia(?:s)?|conta(?:s)?\s+corrent(?:e|es))\b',
+
+    'Boleto/Credor':
+        r'\bboletos?\b|\bcredor(?:es)?\b',
+
+    # ── PARTE CADASTRAL ─────────────────────────────────────────────────────────
+    'Cadastro em Geral':
+        r'\binformac(?:oes)?\s+cadastrais\b'
+        r'|\brequisic(?:ao|oes)\s+de\s+pequeno(?:s)?\s+valor(?:es)?\b',
+
+    'Cadastro de Convenio':
+        r'\bcadastro(?:s)?\s+(?:de\s+)?conta(?:s)?\s+(?:de\s+)?convenio(?:s)?\b'
+        r'|\bconta(?:s)?\s+(?:de\s+)?convenio(?:s)?\s+cadastrad(?:a|as|o|os)\b',
+
+    'Atualizacao de Dados':
+        r'\batualizac(?:ao|oes)\s+(?:de\s+)?dados?\b'
+        r'|\bnomeac(?:ao|oes)\s+de\s+contador(?:es)?\b'
+        r'|\balterar?\s+nome(?:s)?\s+(?:de|das|nas)\s+unidade(?:s)?\s+gestora(?:s)?\b',
+
+    # **Programa de Trabalho** (ordem ação→objeto OU objeto→ação)
+    'Programa de Trabalho':
+        r'\b(?:'
+        rf'(?:{ACOES}(?:\s+(?:o|a|os|as))?\s*(?:\s+no\s+sistema)?(?:\s+{PREP})?\s+{PT_OBJ})'
+        r'|'
+        rf'(?:{PT_OBJ}(?:\s+no\s+sistema)?(?:\s+(?:foi|foram|esta(?:o)?|sera(?:o)?))?\s*(?:\w+\s+){{0,6}}{ACOES})'
+        r')\b',
+
+    'Detalhamento de Fonte':
+        r'\bcadastro(?:s)?\s+(?:de\s+)?detalhamento(?:s)?\s+(?:de\s+)?fonte(?:s)?\b'
+        r'|\bdetalhamento(?:s)?\s+(?:da|de)\s+fonte(?:s)?\b'
+        r'|\bfonte(?:s)?\s+detalhad(?:a|as|o|os)\b',
+
+    # ── ACESSO E PERFIL ─────────────────────────────────────────────────────────
+    'Acesso ou Senha':
+        r'(?:(?:\bacesso(?:s)?\b|\bsenha(?:s)?\b).{0,25}\b(?:siafem|siaferio)\b|\bsiafem\b|\bsiaferio\b)',
+
+    'Reativacao':
+        r'\breativ(?:ar|acao|acoes|ado(?:s)?|ada(?:s)?)\b'
+        r'|\bdesbloqueio(?:s)?\s+de\s+usuario(?:s)?\b'
+        r'|\breativac(?:ao|oes)\s+de\s+perfil\b',
+
+    'Perfil ou Gestor de Usuarios':
+        r'\bgestor(?:es)?\s+de\s+usuario(?:s)?\b'
+        r'|\bperfil(?:es)?\s+de\s+usuario(?:s)?\b'
+        r'|\btroca\s+de\s+gestor\b',
+
+    # ── OUTROS ──────────────────────────────────────────────────────────────────
+    'LISCONTIR':
+        r'\bliscontir\b|\bdesbloqueio\s+de\s+empenho(?:s)?\b',
+
+    'Desconsiderar':
+        r'\bdesconsiderar\b',
 }
 
 
@@ -496,6 +567,9 @@ def main():
             comunica_recebido = corpo_do_iframe.text.strip()
             driver.switch_to.default_content()
 
+            # NORMALIZAÇÃO DO TEXTO (remove acentos + minúsculas)
+            comunica_normalizado = normalizar(comunica_recebido)
+
             # Botão de "Sair" da visualização do Comunica
             botao_de_sair_comunica = wait.until(EC.element_to_be_clickable((By.ID, "pt1:m1:btnVoltar")))
             botao_de_sair_comunica.click()
@@ -513,10 +587,12 @@ def main():
             motivo_da_decisao = ""
 
             # ETAPA A: Verificação de Prioridade (Envio Obrigatório)
+            # Usa texto normalizado para busca mais robusta
             encontrou_prioritaria = False
             for palavra in PALAVRAS_DE_ENVIO_OBRIGATORIO:
-                padrao = r'\b' + re.escape(palavra) + r'\b'
-                if re.search(padrao, comunica_recebido, re.IGNORECASE):
+                palavra_normalizada = normalizar(palavra)
+                padrao = r'\b' + re.escape(palavra_normalizada) + r'\b'
+                if re.search(padrao, comunica_normalizado, re.IGNORECASE):
                     encontrou_prioritaria = True
                     motivo_da_decisao = f"[POSSÍVEL PRIORIDADE] Palavra de envio obrigatório '{palavra}' encontrada."
                     break
@@ -525,24 +601,26 @@ def main():
                 email_deve_ser_enviado = True
 
             else:
-                # ETAPA B (PALABRAS E FRASES COM REGEX APRIMORADO): Verificação de Bloqueio (Só se não for prioritário)
+                # ETAPA B: Verificação de Bloqueio com REGEX melhoradas (Só se não for prioritário)
+                # Texto normalizado para as buscas de bloqueio
+                texto = comunica_normalizado
+                
                 encontrou_bloqueio = False
                 conceito_encontrado = ""
+                trecho_casado = ""
 
                 # Itera sobre o dicionário de padrões de regex
-                for conceito, padrao_regex in DICIONARIO_DE_BLOQUEIO_REGEX.items():
-                    
-                    # re.search() para encontrar o primeiro match, com o flag re.IGNORECASE
-                    match = re.search(padrao_regex, comunica_recebido, re.IGNORECASE)
-
+                for conceito, padrao in DICIONARIO_DE_BLOQUEIO_REGEX.items():
+                    match = re.search(padrao, texto, flags=re.IGNORECASE|re.DOTALL)
                     if match:
                         encontrou_bloqueio = True
                         conceito_encontrado = conceito
-                        break # Sai do loop assim que encontra o primeiro match
+                        trecho_casado = match.group(0)
+                        break
 
                 if encontrou_bloqueio:
                     email_deve_ser_enviado = False
-                    motivo_da_decisao = f"[BLOQUEADO] Assunto impeditivo: '{conceito_encontrado}' encontrado."
+                    motivo_da_decisao = f"[BLOQUEADO] Assunto impeditivo: '{conceito_encontrado}' (trecho: \"{trecho_casado}\")."
 
 
                 else:
