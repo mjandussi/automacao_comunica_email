@@ -321,7 +321,7 @@ def formatar_log_para_html(lista_de_logs):
             linha_formatada = f'<div style="color: #5cb85c; font-weight: bold;">{linha_segura}</div>' # Verde
         elif "[INFORMATIVO]" in linha_segura:
              linha_formatada = f'<div style="color: #5bc0de; font-weight: bold;">{linha_segura}</div>' # Azul
-        elif "[POSSÍVEL PRIORIDADE]" in linha_segura:
+        elif "[ENVIO PRIORITÁRIO]" in linha_segura:
              linha_formatada = f'<div style="color: #d5ee02; font-weight: bold;">{linha_segura}</div>' # Amarelo
         
 
