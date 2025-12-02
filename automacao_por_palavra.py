@@ -177,9 +177,10 @@ DICIONARIO_DE_BLOQUEIO_REGEX = {
         r'|\breativac(?:ao|oes)\s+de\s+perfil\b',
 
     'Perfil ou Gestor de Usuarios':
-        r'\bgestor(?:es)?\s+de\s+usuario(?:s)?\b'
-        r'|\bperfil(?:es)?\s+de\s+usuario(?:s)?\b'
-        r'|\btroca\s+de\s+gestor\b',
+       r'\bgestor(?:a|as|es)?\s+de\s+usu[áa]rio(?:s)?\b'
+       r'|\b(?:perfil|perfis)\s+de\s+usu[áa]rio(?:s)?\b'  
+       r'|\btroca\s+de\s+gestor(?:a|as|es)?\b'
+       r'|\bgestor(?:a|as|es)?\s+(?:d[oa]|de)?\s*siafe(?:[.\-\s]*rio)?\b',
 
     # ── OUTROS ──────────────────────────────────────────────────────────────────
     'LISCONTIR':
