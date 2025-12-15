@@ -57,122 +57,143 @@ setor_excluir_pesquisa = "SUGESC"
 # Defina quantos comunicas você quer processar
 #numero_de_comunicas_para_processar = 50 # Colocar um número alto para pegar todos
 
+
+import re
+
 # ==============================================================================
-# DICIONÁRIO DE ENVIO PRIORITÁRIO COM REGEX (TEXTO NORMALIZADO)
+# 1. PADRÕES AUXILIARES GLOBAIS (Constantes de Reutilização)
+# ==============================================================================
+
+# Sufixos de ação: cobre ão, õe, oes, ao (ex: Inscrição, Inscricao, Inclusões)
+SFX_ACAO = r'(?:[ãa]o|[õo]es|c[ao]e?s?)'
+
+# Preposições: cobre de, do, da, dos, das, em, para, no, na... (com opcionais)
+PREP = r'(?:[dn]?[oa]s?|de|em|para)'
+
+# Padrão SIAFE: Cobre Siafe, Siaferio, Siafe-Rio, Siafe.Rio, Siafem
+SIAFE_PATTERN = r'(?:siaf[-\s]*e(?:m)?(?:[-\s.]*rio)?)'
+
+# Verbos de Manipulação (Substantivos e Verbos misturados)
+# Cobre: cadastro, cadastrar, alteração, alterar, inclusão, atualizar, liberar, inativar
+VERBOS_GERAIS = (
+    rf'\b(?:alterac{SFX_ACAO}|alterar?|'
+    rf'cadastr(?:o|ar|ad[oa]s?|amento)|'
+    rf'atualizac{SFX_ACAO}|atualizar?|'
+    rf'inclus{SFX_ACAO}|incluir|'
+    rf'liberac{SFX_ACAO}|liberar?|'
+    rf'inativac{SFX_ACAO}|inativar?)'
+)
+
+# Objeto Específico: Programa de Trabalho
+PT_OBJ = r'programa(?:s)?\s*(?:de|-)?\s*trabalho(?:s)?'
+
+
+# ==============================================================================
+# 2. DICIONÁRIO DE ENVIO PRIORITÁRIO (Otimizado)
 # ==============================================================================
 
 DICIONARIO_DE_ENVIO_PRIORITARIO = {
     # ── SISTEMAS E TECNOLOGIA ──────────────────────────────────────────────────
     'Problemas SIAFERIO':
-        r'\b(?:problema(?:s)?|erro(?:s)?|falha(?:s)?|indisponibilidade|instabilidade|lentidao)'
-        r'(?:\s+(?:no|do|com|em))?\s+(?:siaferio|siafe[-\s]*rio|siaf[-\s]*e[-\s]*rio)\b'
-        r'|\bsiaferio\s+(?:fora\s+do\s+ar|inoperante|com\s+problema(?:s)?|nao\s+(?:funciona|carrega|abre))\b',
+        rf'\b(?:problema(?:s)?|erro(?:s)?|falha(?:s)?|indisponibilidade|instabilidade|lentid[ãa]o)'
+        rf'(?:\s+(?:no|do|com|em))?\s+{SIAFE_PATTERN}\b'
+        rf'|\b{SIAFE_PATTERN}\s+(?:fora\s+do\s+ar|inoperante|com\s+problema(?:s)?|n[ãa]o\s+(?:funciona|carrega|abre))\b',
 
     'FlexVision':
         r'\bflexvision\b|\bflex[-\s]*vision\b',
 
     'Sistemas Fora do Ar':
-        r'\b(?:sistema(?:s)?|servico(?:s)?|aplicacao(?:oes)?)\s+(?:fora\s+do\s+ar|indisponivel(?:eis)?|inoperante(?:s)?)\b'
-        r'|\b(?:sem\s+acesso|nao\s+(?:acessa|conecta|funciona))\s+(?:ao\s+)?(?:sistema(?:s)?|siaferio|siafem)\b'
-        r'|\b(?:siaferio|siafe[-\s]*rio|siaf[-\s]*e[-\s]*rio|siafem|siaf[-\s]*em)\s+fora\s+do\s+ar\b',
+        rf'\b(?:sistema(?:s)?|servi[çc]o(?:s)?|aplica(?:[çc][ãa]o|[çc][õo]es))\s+(?:fora\s+do\s+ar|indispon[íi]vel(?:eis)?|inoperante(?:s)?)\b'
+        rf'|\b(?:sem\s+acesso|n[ãa]o\s+(?:acessa|conecta|funciona))\s+(?:ao\s+)?(?:sistema(?:s)?|{SIAFE_PATTERN})\b'
+        rf'|\b{SIAFE_PATTERN}\s+fora\s+do\s+ar\b',
 
     # ── URGÊNCIAS E PROBLEMAS CRÍTICOS ─────────────────────────────────────────
     'Urgente':
-        r'\burgent(?:e|es?|issim[ao])\b|\bpriorit[aá]ri[ao](?:s)?\b|\bemerg[eê]ncia\b'
+        r'\burgent(?:e|es?|[íi]ssim[ao])\b|\bpriorit[áa]ri[ao](?:s)?\b|\bemerg[eê]ncia\b'
         r'|\basap\b|\bcom\s+urg[eê]ncia\b|\bpara\s+hoje\b|\bimediato\b',
 
     'Erro Crítico':
-        r'\b(?:erro\s+(?:critico|grave|fatal|sistema)|falha\s+(?:critica|grave|geral))\b'
-        r'|\b(?:nao\s+(?:consegue|consigo)|impossivel)\s+(?:acessar|executar|processar|finalizar)\b'
-        r'|\bsistema\s+(?:travado|congelado|nao\s+responde)\b',
-
+        r'\b(?:erro\s+(?:cr[íi]tico|grave|fatal|sistema)|falha\s+(?:cr[íi]tica|grave|geral))\b'
+        r'|\b(?:n[ãa]o\s+(?:consegue|consigo)|imposs[íi]vel)\s+(?:acessar|executar|processar|finalizar)\b'
+        r'|\bsistema\s+(?:travado|congelado|n[ãa]o\s+responde)\b',
 
     # ── FECHAMENTO/FIM DE PERÍODO ──────────────────────────────────────────────
     'Fechamento':
-        r'\b(?:fechamento|encerramento)\s+(?:do\s+)?(?:mes|periodo|exercicio|balanco)\b'
-        r'|\bfim\s+do\s+(?:mes|ano|exercicio|periodo)\b'
-        r'|\b(?:prestacao|envio)\s+de\s+contas?\b',
+        r'\b(?:fechamento|encerramento)\s+(?:do\s+)?(?:m[êe]s|per[íi]odo|exerc[íi]cio|balan[çc]o)\b'
+        r'|\bfim\s+do\s+(?:m[êe]s|ano|exerc[íi]cio|per[íi]odo)\b'
+        r'|\b(?:presta(?:[çc][ãa]o|[çc][õo]es)|envio)\s+de\s+contas?\b',
 
     'Relatório Urgente':
-        r'\b(?:relatorio(?:s)?|demonstrativo(?:s)?)\s+(?:urgente(?:s)?|prioritario(?:s)?|para\s+(?:hoje|amanh[aã]))\b'
-        r'|\b(?:balancete|dre|demonstracao)\s+(?:urgente|prioritari[ao])\b',
+        r'\b(?:relat[óo]rio(?:s)?|demonstrativo(?:s)?)\s+(?:urgente(?:s)?|priorit[áa]rio(?:s)?|para\s+(?:hoje|amanh[aã]))\b'
+        r'|\b(?:balancete|dre|demonstra(?:[çc][ãa]o|[çc][õo]es))\s+(?:urgente|priorit[áa]ri[ao])\b',
 }
 
-# --- Lista Simples de Palavras de ENVIO PRIORITÁRIO (mantida para compatibilidade) ---
-PALAVRAS_DE_ENVIO_OBRIGATORIO = [
-    'flexvision',  # mantida para compatibilidade com código existente
-]
+# Lista Simples (Mantida)
+PALAVRAS_DE_ENVIO_OBRIGATORIO = ['flexvision']
 
 
 # ==============================================================================
-# PADRÕES AUXILIARES PARA REUTILIZAÇÃO EM REGEX
-# ==============================================================================
-
-PREP = r'(?:de|do|da|dos|das|no|na|nos|nas)'
-PT_OBJ = r'programa(?:s)?\s*(?:de|-)?\s*trabalho(?:s)?'   # "programa(s) de trabalho(s)"
-ACOES = r'(?:cadastr(?:o(?:s)?|ar|ado(?:s)?|amento|ou)|libera(?:cao|r|do(?:s)?)|inativa(?:cao|r|do(?:s)?))'
-
-# ==============================================================================
-# DICIONÁRIO DE BLOQUEIO COM REGEX ROBUSTAS (TEXTO NORMALIZADO)
+# 3. DICIONÁRIO DE BLOQUEIO (Com Lógica Modular e Robustez)
 # ==============================================================================
 
 DICIONARIO_DE_BLOQUEIO_REGEX = {
-    # ── PARTE CADASTRAL FINANCEIRA ───────────────────────────────────────────────
+    # ── PARTE CADASTRAL FINANCEIRA ──────────────────────────────────────────
+
     'Inscricao Generica':
-        r'\binscri(?:cao|coes)\s+gen(?:erica|eria)(?:s)?\b|\bigs\b',
+        rf'\binscri{SFX_ACAO}\s+gen[ée]ric(?:a|as)?\b|\bigs\b',
 
     'Credor Generico':
-        r'\bcredor(?:es)?\s+generic(?:o|os)\b|\bcgs\b',
+        r'\bcredor(?:es)?\s+gen[ée]ric(?:o|os)\b|\bcgs\b',
 
     'Bloqueio Judicial':
-        r'\bbloqueio(?:s)?\s+judicia(?:l|is)\b|\bcriaca(?:o|oes)\s+de\s+bj\b|\bbj\b',
+        rf'\bbloqueio(?:s)?\s+judicia(?:l|is)\b|\bcria(?:[çc][ãa]o|[çc][õo]es)\s+de\s+bj\b|\bbj\b',
 
     'Codigo de Barras':
-        r'\b(?:cod(?:\.|\s*)barras?|codigo(?:s)?\s+de\s+barras?)\b'
-        r'|\balterac(?:ao|oes)\s+de\s+cnpj\s+em\s+(?:cod(?:\.|\s*)barras?|codigo\s+de\s+barras?)\b',
+        r'\b(?:cod(?:\.|\s*)barras?|c[óo]digo(?:s)?\s+de\s+barras?)\b'
+        rf'|\balterac{SFX_ACAO}\s+de\s+cnpj\s+em\s+(?:cod(?:\.|\s*)barras?|c[óo]digo\s+de\s+barras?)\b',
 
+    # === BLOCO OTIMIZADO DE DADOS BANCÁRIOS ===
     'Dados Bancarios':
-        # Bloco 1: Termos diretos
+        # 1. Termos diretos
         r'\b(?:dados\s+banc[áa]ri(?:o|os)|domic[íi]lio\s+banc[áa]ri(?:o|os))\b'
         r'|'
-        # Bloco 2: Ação (Alterar, Cadastrar, Atualizar, Inclusão)
-        r'\b(?:alterac(?:[ãa]o|[õo]es)|cadastr(?:o|ar)|atualizac(?:[ãa]o|[õo]es)|inclus(?:[ãa]o))\s+'
-        # Bloco 3: Preposição (Opcional e flexível)
-        r'(?:d?[oa]s?|de|em|para)?\s*'
-        # Bloco 4: Objeto (Banco, Agência, Conta Corrente/Bancária)
+        # 2. Ação + Preposição + Objeto + (Opcional: Credor Genérico)
+        rf'{VERBOS_GERAIS}\s+'
+        rf'(?:{PREP})?\s*'
         r'(?:banco(?:s)?|ag[êe]ncia(?:s)?|conta(?:s)?\s+(?:corrent(?:e|es)|banc[áa]ria(?:s)?))'
-        # Bloco 5: Complemento "Credor Genérico" (Opcional com ?)
-        # O '?' no final do grupo faz com que ele pegue a frase COM ou SEM essa parte final
+        # O '?' no final pega com ou sem o complemento
         r'(?:\s+em\s+credor(?:es)?\s+gen[ée]ric(?:o|os))?\b',
-
 
     'Boleto/Credor':
         r'\bboletos?\b|\bcredor(?:es)?\b',
 
     'Alteracao de Razao Social':
-        r'\balterac(?:ao|oes)\s+(?:da|de)\s+razao\s+social\b',
+        rf'\balterac{SFX_ACAO}\s+(?:da|de)\s+raz[ãa]o\s+social\b',
 
+    # ── PARTE CADASTRAL ─────────────────────────────────────────────────────
 
-    # ── PARTE CADASTRAL ─────────────────────────────────────────────────────────
     'Cadastro em Geral':
-        r'\binformac(?:oes)?\s+cadastrais\b'
-        r'|\brequisic(?:ao|oes)\s+de\s+pequeno(?:s)?\s+valor(?:es)?\b',
+        rf'\binforma(?:[çc][õo]es|coes)\s+cadastrais\b'
+        r'|\brequisi(?:[çc][ãa]o|[çc][õo]es)\s+de\s+pequeno(?:s)?\s+valor(?:es)?\b',
 
     'Cadastro de Convenio':
-        r'\bcadastro(?:s)?\s+(?:de\s+)?conta(?:s)?\s+(?:de\s+)?convenio(?:s)?\b'
-        r'|\bconta(?:s)?\s+(?:de\s+)?convenio(?:s)?\s+cadastrad(?:a|as|o|os)\b',
+        r'\bcadastro(?:s)?\s+(?:de\s+)?conta(?:s)?\s+(?:de\s+)?conv[êe]nio(?:s)?\b'
+        r'|\bconta(?:s)?\s+(?:de\s+)?conv[êe]nio(?:s)?\s+cadastrad(?:a|as|o|os)\b',
 
     'Atualizacao de Dados':
-        r'\batualizac(?:ao|oes)\s+(?:de\s+)?dados?\b'
-        r'|\bnomeac(?:ao|oes)\s+de\s+contador(?:es)?\b'
+        rf'\batualizac{SFX_ACAO}\s+(?:de\s+)?dados?\b'
+        rf'|\bnomeac{SFX_ACAO}\s+de\s+contador(?:es)?\b'
         r'|\balterar?\s+nome(?:s)?\s+(?:de|das|nas)\s+unidade(?:s)?\s+gestora(?:s)?\b',
 
-    # **Programa de Trabalho** (ordem ação→objeto OU objeto→ação)
+    # === BLOCO OTIMIZADO DE PROGRAMA DE TRABALHO ===
     'Programa de Trabalho':
         r'\b(?:'
-        rf'(?:{ACOES}(?:\s+(?:o|a|os|as))?\s*(?:\s+no\s+sistema)?(?:\s+{PREP})?\s+{PT_OBJ})'
+        # Ação -> Objeto (ex: Cadastrar Programa de Trabalho)
+        rf'(?:{VERBOS_GERAIS}(?:\s+(?:o|a|os|as))?\s*(?:\s+no\s+sistema)?(?:\s+{PREP})?\s+{PT_OBJ})'
         r'|'
-        rf'(?:{PT_OBJ}(?:\s+no\s+sistema)?(?:\s+(?:foi|foram|esta(?:o)?|sera(?:o)?))?\s*(?:\w+\s+){{0,6}}{ACOES})'
+        # Objeto -> Ação (ex: Programa de Trabalho foi cadastrado)
+        # Nota: {{0,6}} é usado porque dentro de f-string chaves duplas viram chaves literais regex
+        rf'(?:{PT_OBJ}(?:\s+no\s+sistema)?(?:\s+(?:foi|foram|est[áa](?:o)?|ser[áa](?:o)?))?\s*(?:\w+\s+){{0,6}}{VERBOS_GERAIS})'
         r')\b',
 
     'Detalhamento de Fonte':
@@ -180,28 +201,178 @@ DICIONARIO_DE_BLOQUEIO_REGEX = {
         r'|\bdetalhamento(?:s)?\s+(?:da|de)\s+fonte(?:s)?\b'
         r'|\bfonte(?:s)?\s+detalhad(?:a|as|o|os)\b',
 
-    # ── ACESSO E PERFIL ─────────────────────────────────────────────────────────
+    # ── ACESSO E PERFIL ─────────────────────────────────────────────────────
+
     'Acesso ou Senha':
-        r'(?:(?:\bacesso(?:s)?\b|\bsenha(?:s)?\b).{0,25}\b(?:siafem|siaferio)\b|\bsiafem\b|\bsiaferio\b)',
+        rf'(?:(?:\bacesso(?:s)?\b|\bsenha(?:s)?\b).{{0,25}}\b{SIAFE_PATTERN}\b|\b{SIAFE_PATTERN}\b)',
 
     'Reativacao':
-        r'\breativ(?:ar|acao|acoes|ado(?:s)?|ada(?:s)?)\b'
-        r'|\bdesbloqueio(?:s)?\s+de\s+usuario(?:s)?\b'
-        r'|\breativac(?:ao|oes)\s+de\s+perfil\b',
+        rf'\breativ(?:ar|ac{SFX_ACAO}|ado(?:s)?|ada(?:s)?)\b'
+        r'|\bdesbloqueio(?:s)?\s+de\s+usu[áa]rio(?:s)?\b'
+        rf'|\breativac{SFX_ACAO}\s+de\s+perfil\b',
 
+    # === BLOCO OTIMIZADO DE GESTOR E PERFIL ===
     'Perfil ou Gestor de Usuarios':
        r'\bgestor(?:a|as|es)?\s+de\s+usu[áa]rio(?:s)?\b'
-       r'|\b(?:perfil|perfis)\s+de\s+usu[áa]rio(?:s)?\b'  
+       r'|\b(?:perfil|perfis)\s+de\s+usu[áa]rio(?:s)?\b'
        r'|\btroca\s+de\s+gestor(?:a|as|es)?\b'
-       r'|\bgestor(?:a|as|es)?\s+(?:d[oa]|de)?\s*siafe(?:[.\-\s]*rio)?\b',
+       # Cobre: Gestor do Siafe Rio, Gestora Siaferio, etc.
+       rf'|\bgestor(?:a|as|es)?\s+(?:d[oa]|de)?\s*{SIAFE_PATTERN}\b',
 
-    # ── OUTROS ──────────────────────────────────────────────────────────────────
+    # ── OUTROS ──────────────────────────────────────────────────────────────
+
     'LISCONTIR':
         r'\bliscontir\b|\bdesbloqueio\s+de\s+empenho(?:s)?\b',
 
     'Desconsiderar':
         r'\bdesconsider(?:ar|e|em)\b',
 }
+
+# # ==============================================================================
+# # DICIONÁRIO DE ENVIO PRIORITÁRIO COM REGEX (TEXTO NORMALIZADO)
+# # ==============================================================================
+
+# DICIONARIO_DE_ENVIO_PRIORITARIO = {
+#     # ── SISTEMAS E TECNOLOGIA ──────────────────────────────────────────────────
+#     'Problemas SIAFERIO':
+#         r'\b(?:problema(?:s)?|erro(?:s)?|falha(?:s)?|indisponibilidade|instabilidade|lentidao)'
+#         r'(?:\s+(?:no|do|com|em))?\s+(?:siaferio|siafe[-\s]*rio|siaf[-\s]*e[-\s]*rio)\b'
+#         r'|\bsiaferio\s+(?:fora\s+do\s+ar|inoperante|com\s+problema(?:s)?|nao\s+(?:funciona|carrega|abre))\b',
+
+#     'FlexVision':
+#         r'\bflexvision\b|\bflex[-\s]*vision\b',
+
+#     'Sistemas Fora do Ar':
+#         r'\b(?:sistema(?:s)?|servico(?:s)?|aplicacao(?:oes)?)\s+(?:fora\s+do\s+ar|indisponivel(?:eis)?|inoperante(?:s)?)\b'
+#         r'|\b(?:sem\s+acesso|nao\s+(?:acessa|conecta|funciona))\s+(?:ao\s+)?(?:sistema(?:s)?|siaferio|siafem)\b'
+#         r'|\b(?:siaferio|siafe[-\s]*rio|siaf[-\s]*e[-\s]*rio|siafem|siaf[-\s]*em)\s+fora\s+do\s+ar\b',
+
+#     # ── URGÊNCIAS E PROBLEMAS CRÍTICOS ─────────────────────────────────────────
+#     'Urgente':
+#         r'\burgent(?:e|es?|issim[ao])\b|\bpriorit[aá]ri[ao](?:s)?\b|\bemerg[eê]ncia\b'
+#         r'|\basap\b|\bcom\s+urg[eê]ncia\b|\bpara\s+hoje\b|\bimediato\b',
+
+#     'Erro Crítico':
+#         r'\b(?:erro\s+(?:critico|grave|fatal|sistema)|falha\s+(?:critica|grave|geral))\b'
+#         r'|\b(?:nao\s+(?:consegue|consigo)|impossivel)\s+(?:acessar|executar|processar|finalizar)\b'
+#         r'|\bsistema\s+(?:travado|congelado|nao\s+responde)\b',
+
+
+#     # ── FECHAMENTO/FIM DE PERÍODO ──────────────────────────────────────────────
+#     'Fechamento':
+#         r'\b(?:fechamento|encerramento)\s+(?:do\s+)?(?:mes|periodo|exercicio|balanco)\b'
+#         r'|\bfim\s+do\s+(?:mes|ano|exercicio|periodo)\b'
+#         r'|\b(?:prestacao|envio)\s+de\s+contas?\b',
+
+#     'Relatório Urgente':
+#         r'\b(?:relatorio(?:s)?|demonstrativo(?:s)?)\s+(?:urgente(?:s)?|prioritario(?:s)?|para\s+(?:hoje|amanh[aã]))\b'
+#         r'|\b(?:balancete|dre|demonstracao)\s+(?:urgente|prioritari[ao])\b',
+# }
+
+# # --- Lista Simples de Palavras de ENVIO PRIORITÁRIO (mantida para compatibilidade) ---
+# PALAVRAS_DE_ENVIO_OBRIGATORIO = [
+#     'flexvision',  # mantida para compatibilidade com código existente
+# ]
+
+
+# # ==============================================================================
+# # PADRÕES AUXILIARES PARA REUTILIZAÇÃO EM REGEX
+# # ==============================================================================
+
+# PREP = r'(?:de|do|da|dos|das|no|na|nos|nas)'
+# PT_OBJ = r'programa(?:s)?\s*(?:de|-)?\s*trabalho(?:s)?'   # "programa(s) de trabalho(s)"
+# ACOES = r'(?:cadastr(?:o(?:s)?|ar|ado(?:s)?|amento|ou)|libera(?:cao|r|do(?:s)?)|inativa(?:cao|r|do(?:s)?))'
+
+# # ==============================================================================
+# # DICIONÁRIO DE BLOQUEIO COM REGEX ROBUSTAS (TEXTO NORMALIZADO)
+# # ==============================================================================
+
+# DICIONARIO_DE_BLOQUEIO_REGEX = {
+#     # ── PARTE CADASTRAL FINANCEIRA ───────────────────────────────────────────────
+#     'Inscricao Generica':
+#         r'\binscri(?:cao|coes)\s+gen(?:erica|eria)(?:s)?\b|\bigs\b',
+
+#     'Credor Generico':
+#         r'\bcredor(?:es)?\s+generic(?:o|os)\b|\bcgs\b',
+
+#     'Bloqueio Judicial':
+#         r'\bbloqueio(?:s)?\s+judicia(?:l|is)\b|\bcriaca(?:o|oes)\s+de\s+bj\b|\bbj\b',
+
+#     'Codigo de Barras':
+#         r'\b(?:cod(?:\.|\s*)barras?|codigo(?:s)?\s+de\s+barras?)\b'
+#         r'|\balterac(?:ao|oes)\s+de\s+cnpj\s+em\s+(?:cod(?:\.|\s*)barras?|codigo\s+de\s+barras?)\b',
+
+#     'Dados Bancarios':
+#         # Bloco 1: Termos diretos
+#         r'\b(?:dados\s+banc[áa]ri(?:o|os)|domic[íi]lio\s+banc[áa]ri(?:o|os))\b'
+#         r'|'
+#         # Bloco 2: Ação (Alterar, Cadastrar, Atualizar, Inclusão)
+#         r'\b(?:alterac(?:[ãa]o|[õo]es)|cadastr(?:o|ar)|atualizac(?:[ãa]o|[õo]es)|inclus(?:[ãa]o))\s+'
+#         # Bloco 3: Preposição (Opcional e flexível)
+#         r'(?:d?[oa]s?|de|em|para)?\s*'
+#         # Bloco 4: Objeto (Banco, Agência, Conta Corrente/Bancária)
+#         r'(?:banco(?:s)?|ag[êe]ncia(?:s)?|conta(?:s)?\s+(?:corrent(?:e|es)|banc[áa]ria(?:s)?))'
+#         # Bloco 5: Complemento "Credor Genérico" (Opcional com ?)
+#         # O '?' no final do grupo faz com que ele pegue a frase COM ou SEM essa parte final
+#         r'(?:\s+em\s+credor(?:es)?\s+gen[ée]ric(?:o|os))?\b',
+
+
+#     'Boleto/Credor':
+#         r'\bboletos?\b|\bcredor(?:es)?\b',
+
+#     'Alteracao de Razao Social':
+#         r'\balterac(?:ao|oes)\s+(?:da|de)\s+razao\s+social\b',
+
+
+#     # ── PARTE CADASTRAL ─────────────────────────────────────────────────────────
+#     'Cadastro em Geral':
+#         r'\binformac(?:oes)?\s+cadastrais\b'
+#         r'|\brequisic(?:ao|oes)\s+de\s+pequeno(?:s)?\s+valor(?:es)?\b',
+
+#     'Cadastro de Convenio':
+#         r'\bcadastro(?:s)?\s+(?:de\s+)?conta(?:s)?\s+(?:de\s+)?convenio(?:s)?\b'
+#         r'|\bconta(?:s)?\s+(?:de\s+)?convenio(?:s)?\s+cadastrad(?:a|as|o|os)\b',
+
+#     'Atualizacao de Dados':
+#         r'\batualizac(?:ao|oes)\s+(?:de\s+)?dados?\b'
+#         r'|\bnomeac(?:ao|oes)\s+de\s+contador(?:es)?\b'
+#         r'|\balterar?\s+nome(?:s)?\s+(?:de|das|nas)\s+unidade(?:s)?\s+gestora(?:s)?\b',
+
+#     # **Programa de Trabalho** (ordem ação→objeto OU objeto→ação)
+#     'Programa de Trabalho':
+#         r'\b(?:'
+#         rf'(?:{ACOES}(?:\s+(?:o|a|os|as))?\s*(?:\s+no\s+sistema)?(?:\s+{PREP})?\s+{PT_OBJ})'
+#         r'|'
+#         rf'(?:{PT_OBJ}(?:\s+no\s+sistema)?(?:\s+(?:foi|foram|esta(?:o)?|sera(?:o)?))?\s*(?:\w+\s+){{0,6}}{ACOES})'
+#         r')\b',
+
+#     'Detalhamento de Fonte':
+#         r'\bcadastro(?:s)?\s+(?:de\s+)?detalhamento(?:s)?\s+(?:de\s+)?fonte(?:s)?\b'
+#         r'|\bdetalhamento(?:s)?\s+(?:da|de)\s+fonte(?:s)?\b'
+#         r'|\bfonte(?:s)?\s+detalhad(?:a|as|o|os)\b',
+
+#     # ── ACESSO E PERFIL ─────────────────────────────────────────────────────────
+#     'Acesso ou Senha':
+#         r'(?:(?:\bacesso(?:s)?\b|\bsenha(?:s)?\b).{0,25}\b(?:siafem|siaferio)\b|\bsiafem\b|\bsiaferio\b)',
+
+#     'Reativacao':
+#         r'\breativ(?:ar|acao|acoes|ado(?:s)?|ada(?:s)?)\b'
+#         r'|\bdesbloqueio(?:s)?\s+de\s+usuario(?:s)?\b'
+#         r'|\breativac(?:ao|oes)\s+de\s+perfil\b',
+
+#     'Perfil ou Gestor de Usuarios':
+#        r'\bgestor(?:a|as|es)?\s+de\s+usu[áa]rio(?:s)?\b'
+#        r'|\b(?:perfil|perfis)\s+de\s+usu[áa]rio(?:s)?\b'  
+#        r'|\btroca\s+de\s+gestor(?:a|as|es)?\b'
+#        r'|\bgestor(?:a|as|es)?\s+(?:d[oa]|de)?\s*siafe(?:[.\-\s]*rio)?\b',
+
+#     # ── OUTROS ──────────────────────────────────────────────────────────────────
+#     'LISCONTIR':
+#         r'\bliscontir\b|\bdesbloqueio\s+de\s+empenho(?:s)?\b',
+
+#     'Desconsiderar':
+#         r'\bdesconsider(?:ar|e|em)\b',
+# }
 
 
 
