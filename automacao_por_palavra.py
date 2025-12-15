@@ -119,7 +119,7 @@ ACOES = r'(?:cadastr(?:o(?:s)?|ar|ado(?:s)?|amento|ou)|libera(?:cao|r|do(?:s)?)|
 DICIONARIO_DE_BLOQUEIO_REGEX = {
     # ── PARTE CADASTRAL FINANCEIRA ───────────────────────────────────────────────
     'Inscricao Generica':
-        r'\binscri(?:cao|coes)\s+generica(?:s)?\b|\bigs\b',
+        r'\binscri(?:cao|coes)\s+gen(?:erica|eria)(?:s)?\b|\bigs\b',
 
     'Credor Generico':
         r'\bcredor(?:es)?\s+generic(?:o|os)\b|\bcgs\b',
@@ -132,13 +132,20 @@ DICIONARIO_DE_BLOQUEIO_REGEX = {
         r'|\balterac(?:ao|oes)\s+de\s+cnpj\s+em\s+(?:cod(?:\.|\s*)barras?|codigo\s+de\s+barras?)\b',
 
     'Dados Bancarios':
-        r'\bdados\s+bancari(?:o|os)\b'
-        r'|\bdomicilio\s+bancari(?:o|os)\b'
-        r'|\b(alterac(?:ao|oes)|cadastro|atualizac(?:ao|oes))\s+(?:de\s+)?'
-        r'(?:banco(?:s)?|agencia(?:s)?|conta(?:s)?\s+corrent(?:e|es))\b',
+        r'\b(?:dados\s+bancari(?:o|os)|domicilio\s+bancari(?:o|os))\b'
+        r'|'
+        r'\b(?:alterac(?:ao|oes)|cadastr(?:o|ar)|atualizac(?:ao|oes)|inclus(?:ao))\s+'
+        r'(?:de|do|da|dos|das|em|para)?\s*'
+        r'(?:banco(?:s)?|agencia(?:s)?|conta(?:s)?\s+(?:corrent(?:e|es)|bancaria(?:s)?))'
+        r'(?:\s+em\s+credor(?:es)?\s+generic(?:o|os))?\b',
+
 
     'Boleto/Credor':
         r'\bboletos?\b|\bcredor(?:es)?\b',
+
+    'Alteracao de Razao Social':
+        r'\balterac(?:ao|oes)\s+(?:da|de)\s+razao\s+social\b',
+
 
     # ── PARTE CADASTRAL ─────────────────────────────────────────────────────────
     'Cadastro em Geral':
