@@ -187,7 +187,7 @@ DICIONARIO_DE_BLOQUEIO_REGEX = {
         r'\bliscontir\b|\bdesbloqueio\s+de\s+empenho(?:s)?\b',
 
     'Desconsiderar':
-        r'\bdesconsiderar\b',
+        r'\bdesconsider(?:ar|e|em|a|am|ado|ados|ada|adas|ando)\b',
 }
 
 
