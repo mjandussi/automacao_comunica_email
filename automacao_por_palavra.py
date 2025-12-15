@@ -140,7 +140,7 @@ DICIONARIO_DE_BLOQUEIO_REGEX = {
     # ── PARTE CADASTRAL FINANCEIRA ──────────────────────────────────────────
 
     'Inscricao Generica':
-    rf'\binscri{SFX_ACAO}\s+gen[ée]ri(?:c)?(?:a|as)?\b|\bigs\b',
+    rf'\binscric{SFX_ACAO}\s+gen[ée]ri(?:c)?(?:a|as)?\b|\bigs\b',
 
     'Credor Generico':
         r'\bcredor(?:es)?\s+gen[ée]ric(?:o|os)\b|\bcgs\b',
