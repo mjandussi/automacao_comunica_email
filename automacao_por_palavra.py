@@ -132,12 +132,18 @@ DICIONARIO_DE_BLOQUEIO_REGEX = {
         r'|\balterac(?:ao|oes)\s+de\s+cnpj\s+em\s+(?:cod(?:\.|\s*)barras?|codigo\s+de\s+barras?)\b',
 
     'Dados Bancarios':
-        r'\b(?:dados\s+bancari(?:o|os)|domicilio\s+bancari(?:o|os))\b'
+        # Bloco 1: Termos diretos
+        r'\b(?:dados\s+banc[áa]ri(?:o|os)|domic[íi]lio\s+banc[áa]ri(?:o|os))\b'
         r'|'
-        r'\b(?:alterac(?:ao|oes)|cadastr(?:o|ar)|atualizac(?:ao|oes)|inclus(?:ao))\s+'
-        r'(?:de|do|da|dos|das|em|para)?\s*'
-        r'(?:banco(?:s)?|agencia(?:s)?|conta(?:s)?\s+(?:corrent(?:e|es)|bancaria(?:s)?))'
-        r'(?:\s+em\s+credor(?:es)?\s+generic(?:o|os))?\b',
+        # Bloco 2: Ação (Alterar, Cadastrar, Atualizar, Inclusão)
+        r'\b(?:alterac(?:[ãa]o|[õo]es)|cadastr(?:o|ar)|atualizac(?:[ãa]o|[õo]es)|inclus(?:[ãa]o))\s+'
+        # Bloco 3: Preposição (Opcional e flexível)
+        r'(?:d?[oa]s?|de|em|para)?\s*'
+        # Bloco 4: Objeto (Banco, Agência, Conta Corrente/Bancária)
+        r'(?:banco(?:s)?|ag[êe]ncia(?:s)?|conta(?:s)?\s+(?:corrent(?:e|es)|banc[áa]ria(?:s)?))'
+        # Bloco 5: Complemento "Credor Genérico" (Opcional com ?)
+        # O '?' no final do grupo faz com que ele pegue a frase COM ou SEM essa parte final
+        r'(?:\s+em\s+credor(?:es)?\s+gen[ée]ric(?:o|os))?\b',
 
 
     'Boleto/Credor':
